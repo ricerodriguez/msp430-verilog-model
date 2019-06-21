@@ -1,4 +1,3 @@
-
 // Register File
 // Stores values of all 16 registers. All registers are addressible.
 module reg_file
@@ -26,7 +25,7 @@ module reg_file
    
    initial
      begin
-        for (i=0;i<15;i=i+1)
+        for (i=0;i<16;i=i+1)
           regs[i] = 0;
         SR_last = 0;
      end  
