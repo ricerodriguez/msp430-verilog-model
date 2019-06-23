@@ -5,11 +5,11 @@ module reg_file
    input         clk,
    input         RW,
    input [1:0]   As, // Select bit for MUX SR, controlled by control unit
-   input [15:0]  PC_in, SR_in, SP_in,
+   input [15:0]  reg_PC_in, reg_SR_in, reg_SP_in,
    input [15:0]  Din,
    input [3:0]   SA, DA,
    // OUTPUTS
-   output [15:0] PC_out, SR_out, SP_out,
+   output [15:0] reg_PC_out, reg_SR_out, reg_SP_out,
    output [15:0] Dout, Sout);
 
    // R0 - PC
@@ -31,9 +31,9 @@ module reg_file
      end  
 
    // Assign CPU registers
-   assign PC_out      = regs[0];
-   assign SP_out      = regs[1];
-   assign SR_out      = regs[2];
+   assign reg_PC_out      = regs[0];
+   assign reg_SP_out      = regs[1];
+   assign reg_SR_out      = regs[2];
    // Addressable registers
    assign {Sout,Dout} = {regs[SA],regs[DA]};
    
@@ -46,15 +46,15 @@ module reg_file
    always @ (posedge clk)
      begin
         // Latch the incoming PC and SP
-        regs[0] <= {PC_in[15:1],1'b0};
-        regs[1] <= SP_in;
+        regs[0] <= {reg_PC_in[15:1],1'b0};
+        regs[1] <= reg_SP_in;
      end
 
    // SR special cases
    always @ (*)
      case({As,SA})
        // CONSTANTS GENERATED FROM R2
-       {2'b00,4'd2}: regs[SA] <= SR_in;
+       {2'b00,4'd2}: regs[SA] <= reg_SR_in;
        {2'b01,4'd2}: regs[SA] <= 0;
        {2'b10,4'd2}: regs[SA] <= 'h00004;
        {2'b11,4'd2}: regs[SA] <= 'h00008;
