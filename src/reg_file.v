@@ -50,20 +50,17 @@ module reg_file
      end // always @ (posedge clk)
 
    // Conditional bits
-   wire          valid_Din_ROM = (Din > 16'hC000) ? 1 : 0;
-   wire          valid_Din_RAM = ((Din > 16'h0200) && (Din < 16'h03FF)) ? 1 : 0;
-   wire          write_to_PC = (!DA && RW) ? 1 : 0;
+   wire          valid_Din_PC = (Din > 16'h01FF)    ? 1 : 0;
+   wire          write_to_PC = (!DA && RW)          ? 1 : 0;
    wire          write_to_SP = ((DA == 4'd1) && RW) ? 1 : 0;
-   
    
    // Increment PC happens inside of MUX PC
    always @ (posedge clk)
      begin
         // Latch the incoming PC and SP
-        regs[0] <= (write_to_PC && valid_Din_ROM)  ? Din :
-                   (write_to_PC && ~valid_Din_ROM) ? RST_VEC : reg_PC_in;
-        regs[1] <= (write_to_SP && valid_Din_RAM)  ? Din : 
-                   (write_to_SP && ~valid_Din_RAM) ? RST_VEC : reg_SP_in;
+        regs[0] <= (write_to_PC && valid_Din_PC)  ? Din     :
+                   (write_to_PC && ~valid_Din_PC) ? RST_VEC : reg_PC_in;
+        regs[1] <= (write_to_SP)                  ? Din     : reg_SP_in;
      end
 
    // SR special cases
@@ -72,13 +69,13 @@ module reg_file
        // CONSTANTS GENERATED FROM R2
        {2'b00,4'd2}: regs[SA] <= reg_SR_in;
        {2'b01,4'd2}: regs[SA] <= 0;
-       {2'b10,4'd2}: regs[SA] <= 'h00004;
-       {2'b11,4'd2}: regs[SA] <= 'h00008;
+       {2'b10,4'd2}: regs[SA] <= 16'h0004;
+       {2'b11,4'd2}: regs[SA] <= 16'h0008;
        // CONSTANTS GENERATED FROM R3
        {2'b00,4'd3}: regs[SA] <= 0;
-       {2'b01,4'd3}: regs[SA] <= 'h00001;
-       {2'b10,4'd3}: regs[SA] <= 'h00002;
-       {2'b11,4'd3}: regs[SA] <= 'h0FFFF;
+       {2'b01,4'd3}: regs[SA] <= 16'h0001;
+       {2'b10,4'd3}: regs[SA] <= 16'h0002;
+       {2'b11,4'd3}: regs[SA] <= 16'hFFFF;
        default: regs[2] <= reg_SR_in;
      endcase  
    

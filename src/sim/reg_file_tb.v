@@ -56,8 +56,7 @@ module reg_file_tb;
         reg_SP_in <= 16'h0200;
         reg_SR_in <= 16'hFFFF;
         Din <= 16'hF000;
-        #75 Din <= 16'h0;
-        
+        #75 Din <= 16'h0;        
      end
 
    always #5 clk = ~clk;
