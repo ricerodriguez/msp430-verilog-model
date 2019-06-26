@@ -3,9 +3,11 @@
 module reg_file
   (// INPUTS
    input         clk,
+   input         rst,
    input         RW,
    input [1:0]   As, // Select bit for MUX SR, controlled by control unit
    input [15:0]  reg_PC_in, reg_SR_in, reg_SP_in,
+   input [15:0]  RST_VEC,
    input [15:0]  Din,
    input [3:0]   SA, DA,
    // OUTPUTS
@@ -18,16 +20,13 @@ module reg_file
    // R3 - CG 2
 
    // Initialize registers
-   reg [15:0]    regs [15:0];
-   reg [15:0]    SR_last;
-
+   reg [15:0]    regs [15:0];   
    integer       i;
    
    initial
      begin
         for (i=0;i<16;i=i+1)
           regs[i] = 0;
-        SR_last = 0;
      end  
 
    // Assign CPU registers
@@ -37,17 +36,34 @@ module reg_file
    // Addressable registers
    assign {Sout,Dout} = {regs[SA],regs[DA]};
    
-   // Write to registers
    always @ (posedge clk)
-     if (RW)
-       regs[DA] <= Din;
+     begin
+        if (rst)
+          begin
+             for (i=0;i<16;i=i+1)
+               regs[i] <= 0;
+             regs[0] <= RST_VEC; // ROM[FFFE]
+          end
+        // Write to registers
+        else if (RW)
+          regs[DA] <= Din;
+     end // always @ (posedge clk)
+
+   // Conditional bits
+   wire          valid_Din_ROM = (Din > 16'hC000) ? 1 : 0;
+   wire          valid_Din_RAM = ((Din > 16'h0200) && (Din < 16'h03FF)) ? 1 : 0;
+   wire          write_to_PC = (!DA && RW) ? 1 : 0;
+   wire          write_to_SP = ((DA == 4'd1) && RW) ? 1 : 0;
+   
    
    // Increment PC happens inside of MUX PC
    always @ (posedge clk)
      begin
         // Latch the incoming PC and SP
-        regs[0] <= {reg_PC_in[15:1],1'b0};
-        regs[1] <= reg_SP_in;
+        regs[0] <= (write_to_PC && valid_Din_ROM)  ? Din :
+                   (write_to_PC && ~valid_Din_ROM) ? RST_VEC : reg_PC_in;
+        regs[1] <= (write_to_SP && valid_Din_RAM)  ? Din : 
+                   (write_to_SP && ~valid_Din_RAM) ? RST_VEC : reg_SP_in;
      end
 
    // SR special cases
@@ -63,7 +79,7 @@ module reg_file
        {2'b01,4'd3}: regs[SA] <= 'h00001;
        {2'b10,4'd3}: regs[SA] <= 'h00002;
        {2'b11,4'd3}: regs[SA] <= 'h0FFFF;
-       default: regs[SA] <= regs[SA];
+       default: regs[2] <= reg_SR_in;
      endcase  
    
 endmodule
