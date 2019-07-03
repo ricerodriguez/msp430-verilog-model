@@ -40,7 +40,7 @@ module reg_file
      begin
         if (rst)
           begin
-             for (i=0;i<16;i=i+1)
+             for (i=2;i<16;i=i+1)
                regs[i] <= 0;
              regs[0] <= RST_VEC; // ROM[FFFE]
           end
