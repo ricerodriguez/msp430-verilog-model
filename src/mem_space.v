@@ -3,12 +3,41 @@ module mem_space
    input clk, MW, BW,
    output [15:0] MAB_out, MDB_out);
 
+   // Parameters for upper bound of memory spaces (end + 1)
+   // These are also lower bounds of the following space
+   parameter ub_SFRs   = 'h0010, ub_peri8 = 'h0100, 
+             ub_peri16 = 'h0200, ub_ram   = 'h0400,
+             ub_UNUSED = 'hc000, ub_rom   = 'hffff;
+   // Note: For MSP430x2xx Family, range for ROM and IVT overlap. So
+   // there isn't really an upper bound to ROM since it continues all
+   // the way to the top and IVT occupies that space in ROM.
+   
    wire [15:0]   rom_addr, ram_addr;
-   // Address offset is probably wrong?
-   assign rom_addr = (MAB_in > 16'hC000) ? (16'hFFFF - MAB_in) : 16'h0;
-   assign ram_addr = ((MAB_in > 16'h0200) || (MAB_in < 16'h03FF)) ? (16'h0400 - MAB_in) : 16'h0;
-   assign ram_RW = (!rom_addr) ? MW : 1'b0;
-   assign rom_RW = (!ram_addr) ? MW : 1'b0;
+   wire          ram_RW;
+   wire [2:0]    range;
+
+   /*AUTOWIRE*/
+   // Beginning of automatic wires (for undeclared instantiated-module outputs)
+   wire [15:0]          ram_out;                // From u2 of ram.v
+   wire [15:0]          rom_out;                // From u1 of rom.v
+   // End of automatics
+   // Use the upper bounds to determine position in memory map
+   assign range =   (MAB_in < ub_SFRs)   ? 3'd0 :
+                    (MAB_in < ub_peri8)  ? 3'd1 :
+                    (MAB_in < ub_peri16) ? 3'd2 :
+                    (MAB_in < ub_ram)    ? 3'd3 :
+                    (MAB_in < ub_UNUSED) ? 3'd4 :
+                    (MAB_in < ub_rom)    ? 3'd5 : 3'bx;
+
+   // Using upper bounds as the lower bounds of the following space to
+   // determine the appropriate offset to subtract from the address
+   assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
+   // assign rom_RW   = (range == 5) ? (MW)                 : 'b0;
+   assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
+   assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
+   assign MAB_out  = MAB_in; // Should this be latched? I'm not sure
+                             // if it should even be here
+   
    
    rom u1
      (/*AUTOINST*/
@@ -25,10 +54,22 @@ module mem_space
       // Inputs
       .BW                               (BW),
       .clk                              (clk),
-      .ram_Din                          (ram_Din[15:0]),
+      .ram_Din                          (MDB_in[15:0]),
       .ram_RW                           (ram_RW),
       .ram_addr                         (ram_addr[15:0]));
 
-   assign MDB_out = (!ram_addr) ? rom_out : (!rom_addr) ? ram_out : 'bx;
+   // MUX out for MDB out
+   // Eventually replace 48 bits with outputs from peripherals. 16
+   // bits of X stay that way because you are not supposed to use that
+   // space.
+   wire [95:0] outs_flat = {rom_out, 16'bx, ram_out, 48'bx};
+   wire [15:0] outs_deep [5:0];
+   genvar        i;
+   for (i=0;i<6;i=i+1)
+     begin
+        assign outs_deep[i] = outs_flat[16*(i+1)-1:16*i];
+     end
+
+   assign MDB_out = outs_deep[range];
 
 endmodule
