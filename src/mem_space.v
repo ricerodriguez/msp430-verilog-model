@@ -32,7 +32,6 @@ module mem_space
    // Using upper bounds as the lower bounds of the following space to
    // determine the appropriate offset to subtract from the address
    assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
-   // assign rom_RW   = (range == 5) ? (MW)                 : 'b0;
    assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
    assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
    assign MAB_out  = MAB_in; // Should this be latched? I'm not sure

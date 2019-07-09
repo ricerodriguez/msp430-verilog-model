@@ -15,7 +15,7 @@ module rom
      end  
 
    wire [7:0]    byte_out = mem_rom[rom_addr][7:0];
-   assign rom_out = BW ? byte_out : mem_rom[rom_addr];
+   assign rom_out = BW ? {8'bx,byte_out} : mem_rom[rom_addr];
    
 
 endmodule
