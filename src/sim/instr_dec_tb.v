@@ -45,7 +45,6 @@ module instr_dec_tb;
         i <= 0;
         #5 i <= i + 1; 
            MDB_out <= mem[i];
-        // forever #10 MDB_out <= mem[i];
         forever
           begin
              #10 i <= i + 1;
@@ -56,7 +55,5 @@ module instr_dec_tb;
 
    
    always #5 clk = ~clk;
-   // always #10 MDB_out = mem[i];
-   
 
 endmodule
