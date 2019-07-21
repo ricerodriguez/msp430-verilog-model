@@ -7,7 +7,13 @@
  TODO:
    x LATCH ALL THE OUTPUTS
    x DECODE OP CODES TO FS CODES
-   - MAKE SURE STATUS BITS ARE ONLY AFFECTED WHEN THEY SHOULD BE
+   x MAKE SURE STATUS BITS ARE ONLY AFFECTED WHEN THEY SHOULD BE
+ 
+ Notes:
+   - Right now it sets PC to hold when instruction is not an 
+     instruction, so that it way it doesn't pass over the 
+     instruction before the register file receives it on the Din. 
+     When is it supposed to tell PC to continue? How?
 */
 `include "msp430_ops.vh"
 module instr_dec
@@ -80,41 +86,41 @@ module instr_dec
         AdAs[1:0] <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[5:4] : 2'bx;
 
         // Latch BW
-        BW <= (FORMAT <= FMT_II) ? INSTRUCTION[6] : 1'bx;
+        BW <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[6] : 1'bx;
 
         // And now to determine FS code... First, what format is this in?
         case (FORMAT_ASYNC)
           FMT_I:
             case (INSTRUCTION[15:12])
-              `OP_MOV:     {RW,FS} <= {1'b1,`FS_MOV};
-              `OP_ADD:     {RW,FS} <= {1'b1,`FS_ADD};
-              `OP_ADDC:    {RW,FS} <= {1'b1,`FS_ADDC};
-              `OP_SUBC:    {RW,FS} <= {1'b1,`FS_SUBC};
-              `OP_SUB:     {RW,FS} <= {1'b1,`FS_SUB};
-              `OP_CMP:     {RW,FS} <= {1'b0,`FS_CMP};
-              `OP_DADD:    {RW,FS} <= {1'b1,`FS_DADD};
-              `OP_BIT:     {RW,FS} <= {1'b0,`FS_BIT};
-              `OP_BIC:     {RW,FS} <= {1'b1,`FS_BIC};
-              `OP_BIS:     {RW,FS} <= {1'b1,`FS_BIS};
-              `OP_XOR:     {RW,FS} <= {1'b1,`FS_XOR}; 
-              `OP_AND:     {RW,FS} <= {1'b1,`FS_AND};
-              default:     {RW,FS} <= 0; // If it is not a valid op, just clear out
+              `OP_MOV:     {RW,MSR,FS} <= {1'b1,1'b0,`FS_MOV};
+              `OP_ADD:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_ADD};
+              `OP_ADDC:    {RW,MSR,FS} <= {1'b1,1'b1,`FS_ADDC};
+              `OP_SUBC:    {RW,MSR,FS} <= {1'b1,1'b1,`FS_SUBC};
+              `OP_SUB:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_SUB};
+              `OP_CMP:     {RW,MSR,FS} <= {1'b0,1'b1,`FS_CMP};
+              `OP_DADD:    {RW,MSR,FS} <= {1'b1,1'b1,`FS_DADD};
+              `OP_BIT:     {RW,MSR,FS} <= {1'b0,1'b1,`FS_BIT};
+              `OP_BIC:     {RW,MSR,FS} <= {1'b1,1'b0,`FS_BIC};
+              `OP_BIS:     {RW,MSR,FS} <= {1'b1,1'b0,`FS_BIS};
+              `OP_XOR:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_XOR}; 
+              `OP_AND:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_AND};
+              default:     {RW,MSR,FS} <= 0; // If it is not a valid op, just clear out
             endcase // case (INSTRUCTION[15:12])
 
           FMT_II:
             case (INSTRUCTION[15:7])
-              `OP_RRC:     {RW,FS} <= {1'b1,`FS_RRC};
-              `OP_SWPB:    {RW,FS} <= {1'b1,`FS_SWPB};
-              `OP_RRA:     {RW,FS} <= {1'b1,`FS_RRA};
-              `OP_SXT:     {RW,FS} <= {1'b1,`FS_SXT};
-              `OP_PUSH:    {RW,FS} <= {1'b1,`FS_PUSH};
-              `OP_CALL:    {RW,FS} <= {1'b1,`FS_CALL};
-              `OP_RETI:    {RW,FS} <= {1'b1,`FS_RETI};
-              default:     {RW,FS} <= 0;
+              `OP_RRC:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_RRC};
+              `OP_SWPB:    {RW,MSR,FS} <= {1'b1,1'b0,`FS_SWPB};
+              `OP_RRA:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_RRA};
+              `OP_SXT:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_SXT};
+              `OP_PUSH:    {RW,MSR,FS} <= {1'b1,1'b0,`FS_PUSH};
+              `OP_CALL:    {RW,MSR,FS} <= {1'b1,1'b0,`FS_CALL};
+              `OP_RETI:    {RW,MSR,FS} <= {1'b1,1'b1,`FS_RETI};
+              default:     {RW,MSR,FS} <= 0;
             endcase // case (INSTRUCTION[15:7])
 
-          FMT_J:           {RW,FS} <= {4'b0,INSTRUCTION[12:10]};
-          default:         {RW,FS} <= 0;
+          FMT_J:           {RW,MSR,FS} <= {4'b0,1'b0,INSTRUCTION[12:10]};
+          default:         {RW,MSR,FS} <= 0;
         endcase
      end  
 
@@ -126,8 +132,6 @@ module instr_dec
           begin
              // Tell PC to go to next PC on the next clock tick
              MPC <= 1;
-             // Tell SR to use status bits from function unit
-             MSR <= 1;
              // Latch Din, MUX Din will take care of which one to pick
              reg_Din <= reg_Din;
              // Is this a jump?
