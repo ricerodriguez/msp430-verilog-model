@@ -6,7 +6,8 @@
  number of instructions has passed.
  TODO:
    x LATCH ALL THE OUTPUTS
-   - DECODE OP CODES TO FS CODES
+   x DECODE OP CODES TO FS CODES
+   - MAKE SURE STATUS BITS ARE ONLY AFFECTED WHEN THEY SHOULD BE
 */
 `include "msp430_ops.vh"
 module instr_dec
@@ -77,6 +78,44 @@ module instr_dec
         // Latch Ad/As
         AdAs[2]   <= (FORMAT_ASYNC == FMT_I)  ? INSTRUCTION[7]   : 1'bx;
         AdAs[1:0] <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[5:4] : 2'bx;
+
+        // Latch BW
+        BW <= (FORMAT <= FMT_II) ? INSTRUCTION[6] : 1'bx;
+
+        // And now to determine FS code... First, what format is this in?
+        case (FORMAT_ASYNC)
+          FMT_I:
+            case (INSTRUCTION[15:12])
+              `OP_MOV:     {RW,FS} <= {1'b1,`FS_MOV};
+              `OP_ADD:     {RW,FS} <= {1'b1,`FS_ADD};
+              `OP_ADDC:    {RW,FS} <= {1'b1,`FS_ADDC};
+              `OP_SUBC:    {RW,FS} <= {1'b1,`FS_SUBC};
+              `OP_SUB:     {RW,FS} <= {1'b1,`FS_SUB};
+              `OP_CMP:     {RW,FS} <= {1'b0,`FS_CMP};
+              `OP_DADD:    {RW,FS} <= {1'b1,`FS_DADD};
+              `OP_BIT:     {RW,FS} <= {1'b0,`FS_BIT};
+              `OP_BIC:     {RW,FS} <= {1'b1,`FS_BIC};
+              `OP_BIS:     {RW,FS} <= {1'b1,`FS_BIS};
+              `OP_XOR:     {RW,FS} <= {1'b1,`FS_XOR}; 
+              `OP_AND:     {RW,FS} <= {1'b1,`FS_AND};
+              default:     {RW,FS} <= 0; // If it is not a valid op, just clear out
+            endcase // case (INSTRUCTION[15:12])
+
+          FMT_II:
+            case (INSTRUCTION[15:7])
+              `OP_RRC:     {RW,FS} <= {1'b1,`FS_RRC};
+              `OP_SWPB:    {RW,FS} <= {1'b1,`FS_SWPB};
+              `OP_RRA:     {RW,FS} <= {1'b1,`FS_RRA};
+              `OP_SXT:     {RW,FS} <= {1'b1,`FS_SXT};
+              `OP_PUSH:    {RW,FS} <= {1'b1,`FS_PUSH};
+              `OP_CALL:    {RW,FS} <= {1'b1,`FS_CALL};
+              `OP_RETI:    {RW,FS} <= {1'b1,`FS_RETI};
+              default:     {RW,FS} <= 0;
+            endcase // case (INSTRUCTION[15:7])
+
+          FMT_J:           {RW,FS} <= {4'b0,INSTRUCTION[12:10]};
+          default:         {RW,FS} <= 0;
+        endcase
      end  
 
 

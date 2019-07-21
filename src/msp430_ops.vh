@@ -48,12 +48,12 @@
 `define FS_BIS   6'b010001
 `define FS_XOR   6'b010010
 `define FS_AND   6'b010000
-`define FS_RRC   6'b100011
+`define FS_RRC   6'b100000
 `define FS_RRA   6'b100001
-`define FS_PUSH  6'b100000
-`define FS_SWPB  6'b110000
-`define FS_CALL  6'b000111
-`define FS_RETI  6'b000000
-`define FS_SXT   6'b110001
+`define FS_PUSH  6'b110000
+`define FS_SWPB  6'b100010
+`define FS_CALL  6'b110001
+`define FS_RETI  6'b110010
+`define FS_SXT   6'b100011
 
 
