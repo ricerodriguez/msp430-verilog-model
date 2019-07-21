@@ -1,6 +1,6 @@
-open_vcd
-log_vcd
+open_vcd /home/rice/Documents/ECE_4333/dmp/dump.vcd
+log_vcd -level 1
 restart
-run 1000ns
+run 5000ns
 stop_vcd
 close_vcd

@@ -25,7 +25,7 @@ module reg_file
    initial
      begin
         for (i=0;i<16;i=i+1)
-          regs[i] = 0;
+          regs[i] = i;
      end
 
    // Addressable registers
@@ -35,8 +35,6 @@ module reg_file
      begin
         if (rst)
           begin
-             // for (i=2;i<16;i=i+1)
-             //   regs[i] <= 0;
              regs[2] <= 16'h0;   // Forces GIE low and CPU on
              regs[0] <= RST_VEC; // ROM[FFFE]
           end
@@ -49,16 +47,17 @@ module reg_file
    wire          valid_Din_PC = (Din > 16'h01FF)    ? 1 : 0;
    wire          write_to_PC = (!DA && RW)          ? 1 : 0;
    wire          write_to_SP = ((DA == 4'd1) && RW) ? 1 : 0;
-   // Conditional bit for CR2 (CR3 is always active)
-   wire          CR2_active = ((As > 0) && (SA == 2)) ? 1 : 0;
+   wire          write_to_SR = ((DA == 4'd2) && RW) ? 1 : 0;
+   // Conditional bit for CR1 (CR2 is always active)
+   wire          CR1_active = ((As > 0) && (SA == 2)) ? 1 : 0;
    
    // Create reg for constant generators
-   reg [15:0] reg_CR2_out, reg_CR3_out;   
+   reg [15:0] reg_CR1_out, reg_CR2_out;   
    
    // Assign CPU registers
    assign reg_PC_out      = regs[0];
    assign reg_SP_out      = regs[1];
-   assign reg_SR_out      = CR2_active ? reg_CR2_out : regs[2];
+   assign reg_SR_out      = CR1_active ? reg_CR1_out : regs[2];
    
    // Increment PC happens inside of MUX PC
    always @ (posedge clk)
@@ -67,24 +66,24 @@ module reg_file
         regs[0] <= (write_to_PC && valid_Din_PC)  ? Din     :
                    (write_to_PC && ~valid_Din_PC) ? RST_VEC : reg_PC_in;
         regs[1] <= (write_to_SP)                  ? Din     : reg_SP_in;
-        regs[2] <= reg_SR_in;
-        regs[3] <= reg_CR3_out;        
+        regs[2] <= (write_to_SR)                  ? Din     : reg_SR_in;
+        regs[3] <= reg_CR2_out;        
      end
    
    // SR special cases
    always @ (*)
      case({As,SA})
        // CONSTANTS GENERATED FROM R2
-       {2'b00,4'd2}: reg_CR2_out <= reg_SR_in;
-       {2'b01,4'd2}: reg_CR2_out <= 0;
-       {2'b10,4'd2}: reg_CR2_out <= 16'h0004;
-       {2'b11,4'd2}: reg_CR2_out <= 16'h0008;
+       {2'b00,4'd2}: reg_CR1_out <= reg_SR_in;
+       {2'b01,4'd2}: reg_CR1_out <= 0;
+       {2'b10,4'd2}: reg_CR1_out <= 16'h0004;
+       {2'b11,4'd2}: reg_CR1_out <= 16'h0008;
        // CONSTANTS GENERATED FROM R3
-       {2'b00,4'd3}: reg_CR3_out <= 0;
-       {2'b01,4'd3}: reg_CR3_out <= 16'h0001;
-       {2'b10,4'd3}: reg_CR3_out <= 16'h0002;
-       {2'b11,4'd3}: reg_CR3_out <= 16'hFFFF;
-       default: {reg_CR2_out, reg_CR3_out} <= 0;       
+       {2'b00,4'd3}: reg_CR2_out <= 0;
+       {2'b01,4'd3}: reg_CR2_out <= 16'h0001;
+       {2'b10,4'd3}: reg_CR2_out <= 16'h0002;
+       {2'b11,4'd3}: reg_CR2_out <= 16'hFFFF;
+       default: {reg_CR1_out, reg_CR2_out} <= 32'bx;       
      endcase  
    
 endmodule

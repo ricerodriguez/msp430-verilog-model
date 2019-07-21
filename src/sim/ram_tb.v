@@ -29,10 +29,11 @@ module ram_tb;
      begin
         {BW, clk, ram_RW, ram_addr} <= 0;
         ram_Din <= 16'hffff;
+        #120 BW <= 1;
      end
 
    always #5 clk = ~clk;
-   always #20 ram_RW = ~ram_RW;   
-   always #30 ram_addr = ram_addr+2;
+   always #10 ram_RW = ~ram_RW;   
+   always #20 ram_addr = ram_addr+2;
 
 endmodule

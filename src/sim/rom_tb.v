@@ -23,6 +23,7 @@ module rom_tb;
      begin
         rom_addr <= 0;
         BW <= 0;
+        #50 BW <= 1;
      end
 
    always #5 rom_addr <= {rom_addr[15:1],1'b0}+2;

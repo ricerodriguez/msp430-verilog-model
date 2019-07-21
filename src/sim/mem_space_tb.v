@@ -30,7 +30,7 @@ module mem_space_tb;
    initial
      begin
         {clk,MW,BW} <= 0;
-        MAB_in <= 16'h01fe;
+        MAB_in <= 16'h0200;
         MDB_in <= 16'hffff;        
      end
 

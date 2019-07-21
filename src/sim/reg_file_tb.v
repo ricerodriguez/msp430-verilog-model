@@ -61,6 +61,8 @@ module reg_file_tb;
 
    always #5 clk = ~clk;
    always #10 {DA, SA, As} = {DA, SA, As} + 1;
+//    always #10 DA = DA + 1;
+//    always #12 SA = SA + 1;
    always #10 reg_PC_in = {reg_PC_out[15:1],1'b0} + 2;
    always #30 RW <= ~RW;
 

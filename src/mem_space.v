@@ -21,7 +21,9 @@ module mem_space
    wire [15:0]          ram_out;                // From u2 of ram.v
    wire [15:0]          rom_out;                // From u1 of rom.v
    // End of automatics
-   // Use the upper bounds to determine position in memory map
+
+   // Decoder uses address bounds to find which partition address is
+   // for   
    assign range =   (MAB_in < ub_SFRs)   ? 3'd0 :
                     (MAB_in < ub_peri8)  ? 3'd1 :
                     (MAB_in < ub_peri16) ? 3'd2 :
@@ -29,8 +31,8 @@ module mem_space
                     (MAB_in < ub_UNUSED) ? 3'd4 :
                     (MAB_in < ub_rom)    ? 3'd5 : 3'bx;
 
-   // Using upper bounds as the lower bounds of the following space to
-   // determine the appropriate offset to subtract from the address
+
+   // Encoder uses address bounds to determine correct offset
    assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
    assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
    assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
