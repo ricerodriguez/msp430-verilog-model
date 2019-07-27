@@ -1,7 +1,8 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in, MAB_SEL, CALC_OUT
+   rst, reg_SR_in, reg_SP_in, reg_Din, clk, RST_VEC, MDB_in, MAB_SEL,
+   CALC_OUT
    );
 
    /*AUTOINPUT*/
@@ -11,6 +12,7 @@ module pipeline #(parameter SIZE=16)
    input [15:0]         MDB_in;                 // To u00 of mem_space.v
    input [15:0]         RST_VEC;                // To u04 of reg_file.v
    input                clk;                    // To u00 of mem_space.v, ...
+   input [15:0]         reg_Din;                // To u04 of reg_file.v
    input [15:0]         reg_SP_in;              // To u04 of reg_file.v
    input [15:0]         reg_SR_in;              // To u04 of reg_file.v
    input                rst;                    // To u04 of reg_file.v
@@ -19,10 +21,13 @@ module pipeline #(parameter SIZE=16)
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
    wire [2:0]           AdAs;                   // From u03 of instr_dec.v
    wire                 BW;                     // From u03 of instr_dec.v
+   wire [3:0]           CVNZ_func;              // From u09 of func_unit.v
    wire [15:0]          Dout;                   // From u04 of reg_file.v
    wire [1:0]           FORMAT;                 // From u03 of instr_dec.v
    wire [5:0]           FS;                     // From u03 of instr_dec.v
+   wire [SIZE-1:0]      F_OUT;                  // From u09 of func_unit.v
    wire [15:0]          MAB_in;                 // From u01 of mux_mab.v
+   wire [15:0]          MD;                     // From u03 of instr_dec.v
    wire [15:0]          MDB_out;                // From u00 of mem_space.v
    wire [2:0]           MPC;                    // From u03 of instr_dec.v
    wire [1:0]           MSP;                    // From u03 of instr_dec.v
@@ -30,7 +35,6 @@ module pipeline #(parameter SIZE=16)
    wire                 RW;                     // From u03 of instr_dec.v
    wire [15:0]          Sout;                   // From u04 of reg_file.v
    wire [3:0]           reg_DA;                 // From u03 of instr_dec.v
-   wire [15:0]          reg_Din;                // From u03 of instr_dec.v
    wire [15:0]          reg_PC_in;              // From u05 of mux_pc.v
    wire [15:0]          reg_PC_out;             // From u04 of reg_file.v
    wire [3:0]           reg_SA;                 // From u03 of instr_dec.v
@@ -71,12 +75,12 @@ module pipeline #(parameter SIZE=16)
       .BW                               (BW),
       .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
+      .MD                               (MD[15:0]),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
       .MSR                              (MSR),
       .RW                               (RW),
       .reg_DA                           (reg_DA[3:0]),
-      .reg_Din                          (reg_Din[15:0]),
       .reg_SA                           (reg_SA[3:0]),
       // Inputs
       .MDB_out                          (MDB_out[15:0]),
@@ -119,10 +123,21 @@ module pipeline #(parameter SIZE=16)
    // mux_sp u07
    //   (/*AUTOINST*/);
 
-   // func_unit u09
-   //   (.A(Sout),
-   //    .B(Dout),
-   //    /*AUTOINST*/);
+   func_unit u09
+     (.A(Sout),
+      .B(Dout),
+      .Cin(reg_SR_out[0]),
+      /*AUTOINST*/
+      // Outputs
+      .CVNZ_func                        (CVNZ_func[3:0]),
+      .F_OUT                            (F_OUT[SIZE-1:0]),
+      // Inputs
+      .BW                               (BW),
+      .FS                               (FS[5:0]));
+
+   // mux_din u10
+   //   (/*AUTOINST*/);
+   
 
    
 

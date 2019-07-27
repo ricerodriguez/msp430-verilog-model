@@ -25,7 +25,7 @@ module instr_dec
    output reg        RW,
    output reg [3:0]  reg_SA, reg_DA,
    output reg [2:0]  AdAs, 
-   output reg [15:0] reg_Din,
+   output reg [15:0] MD,
    output reg [2:0]  MPC, 
    output reg [1:0]  MSP, 
    output reg        MSR);
@@ -48,7 +48,7 @@ module instr_dec
         reg_SA <= 0;
         reg_DA <= 0; 
         AdAs <= 0;        
-        reg_Din <= 0;
+        MD <= 0;
         MPC <= 1;
         MSP <= 0;
         MSR <= 0;        
@@ -135,8 +135,8 @@ module instr_dec
           begin
              // Tell PC to go to next PC on the next clock tick
              MPC <= 1;
-             // Latch Din, MUX Din will take care of which one to pick
-             reg_Din <= reg_Din;
+             // Set Din to be output of function unit
+             MD <= 0;
              // Is this a jump?
              if (FORMAT == FMT_J)
                // If so, set PC to shift the offset
@@ -180,7 +180,8 @@ module instr_dec
                   count <= count - 1;
                   // Put the whole instruction in reg_Din because it's not
                   // actually an instruction
-                  reg_Din <= MDB_out;                  
+                  // reg_Din <= MDB_out;
+                  MD <= 1;
                end
           end  
      end // always @ (negedge clk)

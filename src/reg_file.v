@@ -21,13 +21,13 @@ module reg_file
 
    // Initialize registers (for debugging)
    reg [15:0]    regs [15:0];      
-   integer       i;
-   initial
-     begin
-        regs[0] = RST_VEC;
-        for (i=1;i<16;i=i+1)
-          regs[i] = i;
-     end
+  integer       i;
+  initial
+    begin
+       // regs[0] = RST_VEC;
+       for (i=0;i<16;i=i+1)
+         regs[i] = 'hc000 + i;
+    end
 
    // Addressable registers
    assign {Sout,Dout} = {regs[reg_SA],regs[reg_DA]};
@@ -64,9 +64,10 @@ module reg_file
    always @ (posedge clk)
      begin
         // Latch the incoming PC and SP
-        regs[0] <= (write_to_PC && valid_reg_Din_PC)  ? reg_Din     :
-                   (write_to_PC && ~valid_reg_Din_PC) ? RST_VEC     : 
-                   (rst)                              ? RST_VEC     : reg_PC_in;
+        regs[0] <= (rst)                                     ? RST_VEC : 
+                   (write_to_PC && valid_reg_Din_PC)         ? reg_Din     :
+                   (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : 
+                   (reg_PC_in === 16'bx)                     ? RST_VEC     : reg_PC_in;
         regs[1] <= (write_to_SP)                      ? reg_Din     : reg_SP_in;
         regs[2] <= (write_to_SR)                      ? reg_Din     : reg_SR_in;
         regs[3] <= reg_CR2_out;        
