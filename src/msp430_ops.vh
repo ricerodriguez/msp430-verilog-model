@@ -42,7 +42,7 @@
 `define FS_SUB   6'b000110
 `define FS_SUBC  6'b001110
 `define FS_CMP   6'b000110
-`define FS_DADD  6'b001001
+`define FS_DADD  6'b001011
 `define FS_BIT   6'b010000
 `define FS_BIC   6'b011000
 `define FS_BIS   6'b010001
