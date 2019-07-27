@@ -1,8 +1,7 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, reg_SP_in, reg_Din, clk, RST_VEC, MDB_in, MAB_SEL,
-   CALC_OUT
+   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in, MAB_SEL, CALC_OUT
    );
 
    /*AUTOINPUT*/
@@ -12,7 +11,6 @@ module pipeline #(parameter SIZE=16)
    input [15:0]         MDB_in;                 // To u00 of mem_space.v
    input [15:0]         RST_VEC;                // To u04 of reg_file.v
    input                clk;                    // To u00 of mem_space.v, ...
-   input [15:0]         reg_Din;                // To u04 of reg_file.v
    input [15:0]         reg_SP_in;              // To u04 of reg_file.v
    input [15:0]         reg_SR_in;              // To u04 of reg_file.v
    input                rst;                    // To u04 of reg_file.v
@@ -35,6 +33,7 @@ module pipeline #(parameter SIZE=16)
    wire                 RW;                     // From u03 of instr_dec.v
    wire [15:0]          Sout;                   // From u04 of reg_file.v
    wire [3:0]           reg_DA;                 // From u03 of instr_dec.v
+   wire [15:0]          reg_Din;                // From u10 of mux_din.v
    wire [15:0]          reg_PC_in;              // From u05 of mux_pc.v
    wire [15:0]          reg_PC_out;             // From u04 of reg_file.v
    wire [3:0]           reg_SA;                 // From u03 of instr_dec.v
@@ -135,8 +134,14 @@ module pipeline #(parameter SIZE=16)
       .BW                               (BW),
       .FS                               (FS[5:0]));
 
-   // mux_din u10
-   //   (/*AUTOINST*/);
+   mux_din u10
+     (/*AUTOINST*/
+      // Outputs
+      .reg_Din                          (reg_Din[15:0]),
+      // Inputs
+      .F_OUT                            (F_OUT[15:0]),
+      .MD                               (MD),
+      .MDB_out                          (MDB_out[15:0]));
    
 
    
