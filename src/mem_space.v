@@ -36,27 +36,23 @@ module mem_space
    assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
    assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
    assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
-   // assign MAB_out  = MAB_in; // Should this be latched? I'm not sure
-                             // if it should even be here
-   
    
    rom u1
      (/*AUTOINST*/
       // Outputs
       .rom_out                          (rom_out[15:0]),
       // Inputs
-      .BW                               (BW),
       .rom_addr                         (rom_addr[15:0]));
 
    ram u2
-     (/*AUTOINST*/
+     (.ram_Din                          (MDB_in[15:0]),
+      .ram_RW                           (MW),
+      /*AUTOINST*/
       // Outputs
       .ram_out                          (ram_out[15:0]),
       // Inputs
       .BW                               (BW),
       .clk                              (clk),
-      .ram_Din                          (MDB_in[15:0]),
-      .ram_RW                           (ram_RW),
       .ram_addr                         (ram_addr[15:0]));
 
    // MUX out for MDB out

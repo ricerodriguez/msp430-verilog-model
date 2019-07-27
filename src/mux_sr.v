@@ -1,10 +1,10 @@
 module mux_sr
   (input [15:0]  reg_SR_out,
-   input [15:0]  func_SR_out,
+   input [15:0]  CVNZ_func,
    input         MSR, // From instruction decoder
    output [15:0] reg_SR_in);
 
-   wire [31:0] mux_ins_flat = {func_SR_out,
+   wire [31:0] mux_ins_flat = {CVNZ_func,
                                reg_SR_out};
    
    wire [15:0] mux_ins_deep [1:0];

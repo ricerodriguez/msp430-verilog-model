@@ -19,7 +19,6 @@
 module instr_dec
   (input             clk,
    input [15:0]      MDB_out,
-   input             CTL_SEL,
    output reg [1:0]  FORMAT,
    output reg [5:0]  FS,
    output reg        BW,
@@ -50,17 +49,16 @@ module instr_dec
         reg_DA <= 0; 
         AdAs <= 0;        
         reg_Din <= 0;
-        MPC <= 0;
+        MPC <= 1;
         MSP <= 0;
         MSR <= 0;        
         count <= 0;
-        // advance <= 0;
      end
 
    // Wires
    wire [15:0]      INSTRUCTION;
    wire [1:0]       FORMAT_ASYNC;
-   
+   wire             USING_CONST_GEN;
 
    // Assign wires
    assign INSTRUCTION = (!count) ? MDB_out : 16'bx;
@@ -68,6 +66,11 @@ module instr_dec
    assign FORMAT_ASYNC = (INSTRUCTION[15:13] == `OP_JUMP) ? FMT_J  :
                          (INSTRUCTION[15:12] == 4'b0001)  ? FMT_II :
                          (INSTRUCTION[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
+
+   assign USING_CONST_GEN = ((FORMAT_ASYNC == FMT_I)  && (INSTRUCTION[11:8] == 3)) ||
+                            ((FORMAT_ASYNC == FMT_II) && (INSTRUCTION[3:0]  == 3)) ?
+                            1'b1 : 0;
+   
    
    // Latch outputs
    always @ (negedge clk)
@@ -151,12 +154,19 @@ module instr_dec
                     // autoincrement. The only difference is the source
                     // register. So check if there is anything there.
                     if ((FORMAT_ASYNC == FMT_I) && !INSTRUCTION[11:8])
-                      count <= 1;
+                      // If the dst mode is indexed and it isn't using the constant
+                      // generator, add an extra one to the count. Otherwise, if it's
+                      // using the constant generator, keep it 0 and otherwise keep it 1
+                      count <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 2 : 
+                               (USING_CONST_GEN)                   ? 0 : 1;
+                    else if ((FORMAT_ASYNC == FMT_II) && !INSTRUCTION[3:0])
+                      count <= 1;                  
+                  
                   2'b01:
                     if ((FORMAT_ASYNC == FMT_I) && INSTRUCTION[7])
-                      count <= 2;
+                      count <= (USING_CONST_GEN) ? 1 : 2;
                     else
-                      count <= 1;
+                      count <= (USING_CONST_GEN) ? 0 : 1;
                   default: count <= 0;
                 endcase // casex (INSTRUCTION[5:4])
           end // if (~start)

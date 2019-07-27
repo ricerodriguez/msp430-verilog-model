@@ -8,8 +8,8 @@ module reg_file
    input [1:0]   As, // Select bit for MUX SR, controlled by control unit
    input [15:0]  reg_PC_in, reg_SR_in, reg_SP_in,
    input [15:0]  RST_VEC,
-   input [15:0]  Din,
-   input [3:0]   SA, DA,
+   input [15:0]  reg_Din,
+   input [3:0]   reg_SA, reg_DA,
    // OUTPUTS
    output [15:0] reg_PC_out, reg_SR_out, reg_SP_out,
    output [15:0] Dout, Sout);
@@ -24,12 +24,13 @@ module reg_file
    integer       i;
    initial
      begin
-        for (i=0;i<16;i=i+1)
+        regs[0] = RST_VEC;
+        for (i=1;i<16;i=i+1)
           regs[i] = i;
      end
 
    // Addressable registers
-   assign {Sout,Dout} = {regs[SA],regs[DA]};
+   assign {Sout,Dout} = {regs[reg_SA],regs[reg_DA]};
    
    always @ (posedge clk)
      begin
@@ -40,16 +41,16 @@ module reg_file
           end
         // Write to registers
         else if (RW)
-          regs[DA] <= Din;
+          regs[reg_DA] <= reg_Din;
      end // always @ (posedge clk)
 
    // Conditional bits
-   wire          valid_Din_PC = (Din > 16'h01FF)    ? 1 : 0;
-   wire          write_to_PC = (!DA && RW)          ? 1 : 0;
-   wire          write_to_SP = ((DA == 4'd1) && RW) ? 1 : 0;
-   wire          write_to_SR = ((DA == 4'd2) && RW) ? 1 : 0;
+   wire          valid_reg_Din_PC = (reg_Din > 16'h01FF)    ? 1 : 0;
+   wire          write_to_PC = (!reg_DA && RW)          ? 1 : 0;
+   wire          write_to_SP = ((reg_DA == 4'd1) && RW) ? 1 : 0;
+   wire          write_to_SR = ((reg_DA == 4'd2) && RW) ? 1 : 0;
    // Conditional bit for CR1 (CR2 is always active)
-   wire          CR1_active = ((As > 0) && (SA == 2)) ? 1 : 0;
+   wire          CR1_active = ((As > 0) && (reg_SA == 2)) ? 1 : 0;
    
    // Create reg for constant generators
    reg [15:0] reg_CR1_out, reg_CR2_out;   
@@ -63,16 +64,17 @@ module reg_file
    always @ (posedge clk)
      begin
         // Latch the incoming PC and SP
-        regs[0] <= (write_to_PC && valid_Din_PC)  ? Din     :
-                   (write_to_PC && ~valid_Din_PC) ? RST_VEC : reg_PC_in;
-        regs[1] <= (write_to_SP)                  ? Din     : reg_SP_in;
-        regs[2] <= (write_to_SR)                  ? Din     : reg_SR_in;
+        regs[0] <= (write_to_PC && valid_reg_Din_PC)  ? reg_Din     :
+                   (write_to_PC && ~valid_reg_Din_PC) ? RST_VEC     : 
+                   (rst)                              ? RST_VEC     : reg_PC_in;
+        regs[1] <= (write_to_SP)                      ? reg_Din     : reg_SP_in;
+        regs[2] <= (write_to_SR)                      ? reg_Din     : reg_SR_in;
         regs[3] <= reg_CR2_out;        
      end
    
    // SR special cases
    always @ (*)
-     case({As,SA})
+     case({As,reg_SA})
        // CONSTANTS GENERATED FROM R2
        {2'b00,4'd2}: reg_CR1_out <= reg_SR_in;
        {2'b01,4'd2}: reg_CR1_out <= 0;
