@@ -1,7 +1,7 @@
 module mem_space
   (input [15:0] MAB_in, MDB_in,
    input clk, MW, BW,
-   output [15:0] MAB_out, MDB_out);
+   output [15:0] MDB_out);
 
    // Parameters for upper bound of memory spaces (end + 1)
    // These are also lower bounds of the following space
@@ -36,7 +36,7 @@ module mem_space
    assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
    assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
    assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
-   assign MAB_out  = MAB_in; // Should this be latched? I'm not sure
+   // assign MAB_out  = MAB_in; // Should this be latched? I'm not sure
                              // if it should even be here
    
    

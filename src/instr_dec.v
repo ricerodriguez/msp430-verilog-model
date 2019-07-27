@@ -104,7 +104,7 @@ module instr_dec
               `OP_BIS:     {RW,MSR,FS} <= {1'b1,1'b0,`FS_BIS};
               `OP_XOR:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_XOR}; 
               `OP_AND:     {RW,MSR,FS} <= {1'b1,1'b1,`FS_AND};
-              default:     {RW,MSR,FS} <= 0; // If it is not a valid op, just clear out
+              default:     {RW,MSR,FS} <= 'bx; // If it is not a valid op, just clear out
             endcase // case (INSTRUCTION[15:12])
 
           FMT_II:
@@ -116,11 +116,11 @@ module instr_dec
               `OP_PUSH:    {RW,MSR,FS} <= {1'b1,1'b0,`FS_PUSH};
               `OP_CALL:    {RW,MSR,FS} <= {1'b1,1'b0,`FS_CALL};
               `OP_RETI:    {RW,MSR,FS} <= {1'b1,1'b1,`FS_RETI};
-              default:     {RW,MSR,FS} <= 0;
+              default:     {RW,MSR,FS} <= 'bx;
             endcase // case (INSTRUCTION[15:7])
 
           FMT_J:           {RW,MSR,FS} <= {4'b0,1'b0,INSTRUCTION[12:10]};
-          default:         {RW,MSR,FS} <= 0;
+          default:         {RW,MSR,FS} <= 'bx;
         endcase
      end  
 
