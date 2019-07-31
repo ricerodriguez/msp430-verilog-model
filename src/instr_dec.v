@@ -17,18 +17,19 @@
 */
 `include "msp430_ops.vh"
 module instr_dec
-  (input             clk,
-   input [15:0]      MDB_out,
-   output reg [1:0]  FORMAT,
-   output reg [5:0]  FS,
-   output reg        BW,
-   output reg        RW,
-   output reg [3:0]  reg_SA, reg_DA,
-   output reg [2:0]  AdAs, 
-   output reg [15:0] MD,
-   output reg [2:0]  MPC, 
-   output reg [1:0]  MSP, 
-   output reg        MSR);
+  (input            clk,
+   input [15:0]     MDB_out,
+   output [1:0]     MAB_SEL,
+   output reg [1:0] FORMAT,
+   output reg [5:0] FS,
+   output reg       BW,
+   output reg       RW,
+   output reg [3:0] reg_SA, reg_DA,
+   output reg [2:0] AdAs, 
+   output [1:0]     MD,
+   output reg [2:0] MPC, 
+   output reg [1:0] MSP, 
+   output reg       MSR);
    // MPC - Select bit for MUX PC
    // MSP - Select bit for MUX SP
    // MSR - Select bit for MUX SR
@@ -36,29 +37,34 @@ module instr_dec
    localparam FMT_I = 1, FMT_II = 2, FMT_J = 3;
 
    // Registers
-   reg [2:0]        count;   // Counts instructions
-
+   reg [2:0]        count;   // Counts words in instructions
+   reg [2:0]        count_cycles;
+   // reg              RW_prelatch;
+   
    // Initialize registers
    initial
      begin
         RW <= 0;
+        // RW_prelatch <= 0;
         BW <= 0;
         FS <= 0;
         FORMAT <= 0;
         reg_SA <= 0;
         reg_DA <= 0; 
         AdAs <= 0;        
-        MD <= 0;
         MPC <= 1;
         MSP <= 0;
         MSR <= 0;        
         count <= 0;
+        count_cycles <= 0;
      end
 
    // Wires
    wire [15:0]      INSTRUCTION;
    wire [1:0]       FORMAT_ASYNC;
+   wire [2:0]       AdAs_ASYNC;
    wire             USING_CONST_GEN;
+   // wire             INDIRECT_AUTOINC;   
 
    // Assign wires
    assign INSTRUCTION = (!count) ? MDB_out : 16'bx;
@@ -67,26 +73,64 @@ module instr_dec
                          (INSTRUCTION[15:12] == 4'b0001)  ? FMT_II :
                          (INSTRUCTION[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
 
+   assign AdAs_ASYNC[2]   = (FORMAT_ASYNC == FMT_I)  ? INSTRUCTION[7]   : 1'bx;
+   assign AdAs_ASYNC[1:0] = (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[5:4] : 4'bx;
+
    assign USING_CONST_GEN = ((FORMAT_ASYNC == FMT_I)  && (INSTRUCTION[11:8] == 3)) ||
-                            ((FORMAT_ASYNC == FMT_II) && (INSTRUCTION[3:0]  == 3)) ?
-                            1'b1 : 0;
+                            ((FORMAT_ASYNC == FMT_II) && (INSTRUCTION[3:0]  == 3)) ? 1'b1 : 0;
+
+   // Indirect autoincrement mode is only valid for source operand. If it's using the single 
+   // operand instruction, it's only valid if the single operand is the source operand. This is 
+   // only true for PUSH
+   // assign INDIRECT_AUTOINC = (FORMAT_ASYNC == FMT_I)  && (&AdAs[1:0])                  ? 1 :
+   //                           (FORMAT_ASYNC == FMT_II) && (&AdAs[1:0])
+   //                                                    && INSTRUCTION[15:7] == `OP_PUSH ? 1 : 0;
+
+   // If we're not counting, proceed as normal and use PC.
+   // If one of the operands is using indexed, use output of CALC
+   // If the source operand is using indirect register mode, use Sout
+   assign MAB_SEL = !count && !AdAs_ASYNC            ? 0 :
+                    AdAs[2] || AdAs[1:0]             ? 1 :
+                    AdAs[1:0] == 2'b10               ? 2 : 0;
+   // assign MAB_SEL = 0;
+   
+
+   // If this is an instruction and it's register mode, use F_OUT
+   // If this is 
+   // If this is an instruction and it's indirect autoincrement mode, use Sout+1
+   assign MD = (!count && !AdAs_ASYNC)               ? 0 :
+               (count > 0) && (AdAs[1:0] == 2'b10)   ? 1 :
+               (count > 0) && (&AdAs[1:0])           ? 2 : 'bx;
+   // assign MD = (!count) ? 0 : 'bx;
    
    
+
    // Latch outputs
    always @ (negedge clk)
      begin
+        // RW <= (AdAs_ASYNC > 0) ? 
         // Latch format of instruction
-        FORMAT <= (INSTRUCTION[15:13] == `OP_JUMP) ? FMT_J  :
+        FORMAT <= (count > 0)                      ? FORMAT :
+                  (INSTRUCTION[15:13] == `OP_JUMP) ? FMT_J  :
                   (INSTRUCTION[15:12] == 4'b0001)  ? FMT_II :
                   (INSTRUCTION[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
 
         // Latch SA/DA
-        reg_SA <= (FORMAT_ASYNC == FMT_I) ? INSTRUCTION[11:8] : 4'bx;
-        reg_DA <= (FORMAT_ASYNC == FMT_I) || (FORMAT_ASYNC == FMT_II) ? INSTRUCTION[3:0] : 4'bx;
+        // reg_SA <= (FORMAT_ASYNC == FMT_I) ? INSTRUCTION[11:8] : 4'bx;
+        // reg_DA <= (FORMAT_ASYNC == FMT_I) || (FORMAT_ASYNC == FMT_II) ? INSTRUCTION[3:0] : 4'bx;
+        reg_SA <= (count > 0)                      ? reg_SA :
+                  (FORMAT_ASYNC == FMT_I)          ? INSTRUCTION[11:8] : 4'bx;
+        reg_DA <= (FORMAT_ASYNC <= FMT_II)         ? INSTRUCTION[3:0]  : 
+                  (count > 0) && (&AdAs[1:0])      ? reg_SA            :
+                  (count > 0)                      ? reg_DA            : 4'bx;
 
         // Latch Ad/As
-        AdAs[2]   <= (FORMAT_ASYNC == FMT_I)  ? INSTRUCTION[7]   : 1'bx;
-        AdAs[1:0] <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[5:4] : 2'bx;
+        AdAs    <= (count)                  ? AdAs                              :
+                   (FORMAT_ASYNC == FMT_I)  ? {INSTRUCTION[7],INSTRUCTION[5:4]} :
+                   (FORMAT_ASYNC == FMT_II) ? {1'bx,INSTRUCTION[5:4]}           : 3'bx;
+        
+        // AdAs[2]   <= (FORMAT_ASYNC == FMT_I)  ? INSTRUCTION[7]   : 1'bx;
+        // AdAs[1:0] <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[5:4] : 2'bx;
 
         // Latch BW
         BW <= (FORMAT_ASYNC <= FMT_II) ? INSTRUCTION[6] : 1'bx;
@@ -136,7 +180,7 @@ module instr_dec
              // Tell PC to go to next PC on the next clock tick
              MPC <= 1;
              // Set Din to be output of function unit
-             MD <= 0;
+             // MD <= 0;
              // Is this a jump?
              if (FORMAT == FMT_J)
                // If so, set PC to shift the offset
@@ -158,7 +202,7 @@ module instr_dec
                       // generator, add an extra one to the count. Otherwise, if it's
                       // using the constant generator, keep it 0 and otherwise keep it 1
                       count <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 2 : 
-                               (USING_CONST_GEN)                   ? 0 : 1;
+                                     (USING_CONST_GEN)                   ? 0 : 1;
                     else if ((FORMAT_ASYNC == FMT_II) && !INSTRUCTION[3:0])
                       count <= 1;                  
                   
@@ -181,7 +225,7 @@ module instr_dec
                   // Put the whole instruction in reg_Din because it's not
                   // actually an instruction
                   // reg_Din <= MDB_out;
-                  MD <= 1;
+                  // MD <= 1;
                end
           end  
      end // always @ (negedge clk)

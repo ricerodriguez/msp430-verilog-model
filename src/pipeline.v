@@ -1,13 +1,12 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in, MAB_SEL, CALC_OUT
+   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in, CALC_OUT
    );
 
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
    input [15:0]         CALC_OUT;               // To u01 of mux_mab.v, ...
-   input [2:0]          MAB_SEL;                // To u01 of mux_mab.v
    input [15:0]         MDB_in;                 // To u00 of mem_space.v
    input [15:0]         RST_VEC;                // To u04 of reg_file.v
    input                clk;                    // To u00 of mem_space.v, ...
@@ -24,8 +23,9 @@ module pipeline #(parameter SIZE=16)
    wire [1:0]           FORMAT;                 // From u03 of instr_dec.v
    wire [5:0]           FS;                     // From u03 of instr_dec.v
    wire [SIZE-1:0]      F_OUT;                  // From u09 of func_unit.v
+   wire [1:0]           MAB_SEL;                // From u03 of instr_dec.v
    wire [15:0]          MAB_in;                 // From u01 of mux_mab.v
-   wire [15:0]          MD;                     // From u03 of instr_dec.v
+   wire [1:0]           MD;                     // From u03 of instr_dec.v
    wire [15:0]          MDB_out;                // From u00 of mem_space.v
    wire [2:0]           MPC;                    // From u03 of instr_dec.v
    wire [1:0]           MSP;                    // From u03 of instr_dec.v
@@ -59,7 +59,7 @@ module pipeline #(parameter SIZE=16)
       // Inputs
       .CALC_OUT                         (CALC_OUT[15:0]),
       .Dout                             (Dout[15:0]),
-      .MAB_SEL                          (MAB_SEL[2:0]),
+      .MAB_SEL                          (MAB_SEL[1:0]),
       .Sout                             (Sout[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]),
       .reg_SP_out                       (reg_SP_out[15:0]));
@@ -74,7 +74,8 @@ module pipeline #(parameter SIZE=16)
       .BW                               (BW),
       .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
-      .MD                               (MD[15:0]),
+      .MAB_SEL                          (MAB_SEL[1:0]),
+      .MD                               (MD[1:0]),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
       .MSR                              (MSR),
@@ -140,8 +141,9 @@ module pipeline #(parameter SIZE=16)
       .reg_Din                          (reg_Din[15:0]),
       // Inputs
       .F_OUT                            (F_OUT[15:0]),
-      .MD                               (MD),
-      .MDB_out                          (MDB_out[15:0]));
+      .MD                               (MD[1:0]),
+      .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]));
    
 
    
