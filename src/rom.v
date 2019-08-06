@@ -10,7 +10,7 @@ module rom
    reg [7:0]    mem_rom [SIZE-1:0];
    initial 
      begin
-        $readmemh("tester-01.mem",mem_rom);
+        $readmemh("tester-02.mem",mem_rom);
 //        $readmemh("clear.mem",mem_rom,6);
      end  
 

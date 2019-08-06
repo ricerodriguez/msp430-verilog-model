@@ -5,8 +5,10 @@ module shifter #(parameter SIZE_BYTE=8, SIZE_WORD=16)
    output [3:0]  CVNZ_shift,
    output reg [SIZE_WORD-1:0] SHIFT_OUT);
 
-   wire [2*SIZE_BYTE-1:0] padded_byte_msb = {{SIZE_BYTE{DST[SIZE_BYTE-1]}},DST[SIZE_BYTE-1:0]};
-   wire [2*SIZE_BYTE-1:0] padded_byte_lsb = {{SIZE_BYTE{DST[0]}},DST[SIZE_BYTE-1:0]};
+   wire [2*SIZE_BYTE-1:0] padded_byte_msb = {{SIZE_BYTE{DST[SIZE_BYTE-1]}},
+                                             DST[SIZE_BYTE-1:0]};
+   wire [2*SIZE_BYTE-1:0] padded_byte_lsb = {{SIZE_BYTE{DST[0]}},
+                                             DST[SIZE_BYTE-1:0]};
 
    wire [2*SIZE_WORD-1:0] padded_word_msb = {{SIZE_WORD{DST[SIZE_WORD-1]}},DST};
    wire [2*SIZE_WORD-1:0] padded_word_lsb = {{SIZE_WORD{DST[0]}},DST};

@@ -20,18 +20,22 @@ module reg_file
    // R3 - CR 2
 
    // Initialize registers (for debugging)
-   reg [15:0]    regs [15:0];      
-  integer       i;
-  initial
-    begin
-       // regs[0] = RST_VEC;
-       for (i=0;i<16;i=i+1)
-         regs[i] = 'hc000 + i;
-    end
+   reg [15:0]    regs [15:0];
+   reg [3:0]     reg_SA_last, reg_DA_last;
+   
+   integer       i;
+   initial
+     begin
+        reg_DA_last <= 0;
+        reg_SA_last <= 0;
+        // regs[0] = RST_VEC;
+        for (i=0;i<16;i=i+1)
+          regs[i] = 'hc000 + i;
+     end
 
    // Addressable registers
    assign {Sout,Dout} = {regs[reg_SA],regs[reg_DA]};
-   
+
    always @ (posedge clk)
      begin
         if (rst)
@@ -41,16 +45,24 @@ module reg_file
           end
         // Write to registers
         else if (RW)
-          regs[reg_DA] <= reg_Din;
+          begin
+             if (&As)
+               regs[reg_DA_last] <= reg_Din;
+             else
+               regs[reg_DA] <= reg_Din;
+             // // Autoincrement mode
+             // if (&As)
+             //   regs[reg_SA] <= regs[reg_SA]+1;
+          end  
      end // always @ (posedge clk)
 
    // Conditional bits
    wire          valid_reg_Din_PC = (reg_Din > 16'h01FF)    ? 1 : 0;
-   wire          write_to_PC = (!reg_DA && RW)          ? 1 : 0;
-   wire          write_to_SP = ((reg_DA == 4'd1) && RW) ? 1 : 0;
-   wire          write_to_SR = ((reg_DA == 4'd2) && RW) ? 1 : 0;
+   wire          write_to_PC = (!reg_DA && RW)              ? 1 : 0;
+   wire          write_to_SP = ((reg_DA == 4'd1) && RW)     ? 1 : 0;
+   wire          write_to_SR = ((reg_DA == 4'd2) && RW)     ? 1 : 0;
    // Conditional bit for CR1 (CR2 is always active)
-   wire          CR1_active = ((As > 0) && (reg_SA == 2)) ? 1 : 0;
+   wire          CR1_active = ((As > 0) && (reg_SA == 2))   ? 1 : 0;
    
    // Create reg for constant generators
    reg [15:0] reg_CR1_out, reg_CR2_out;   
@@ -63,13 +75,15 @@ module reg_file
    // Increment PC happens inside of MUX PC
    always @ (posedge clk)
      begin
+        reg_SA_last <= reg_SA;
+        reg_DA_last <= reg_DA;
         // Latch the incoming PC and SP
-        regs[0] <= (rst)                                     ? RST_VEC : 
+        regs[0] <= (rst)                                     ? RST_VEC     : 
                    (write_to_PC && valid_reg_Din_PC)         ? reg_Din     :
                    (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : 
                    (reg_PC_in === 16'bx)                     ? RST_VEC     : reg_PC_in;
-        regs[1] <= (write_to_SP)                      ? reg_Din     : reg_SP_in;
-        regs[2] <= (write_to_SR)                      ? reg_Din     : reg_SR_in;
+        regs[1] <= (write_to_SP)                             ? reg_Din     : reg_SP_in;
+        regs[2] <= (write_to_SR)                             ? reg_Din     : reg_SR_in;
         regs[3] <= reg_CR2_out;        
      end
    

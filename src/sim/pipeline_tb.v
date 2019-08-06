@@ -23,8 +23,8 @@ module pipeline_tb;
       .reg_SR_in                        (reg_SR_in[15:0]),
       .rst                              (rst));
 
-   always #5 clk = ~clk;
 
+   always #5 clk = ~clk;
    initial
      begin
         {clk,CALC_OUT,MDB_in} <= 0;

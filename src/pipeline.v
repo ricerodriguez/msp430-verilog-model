@@ -23,8 +23,9 @@ module pipeline #(parameter SIZE=16)
    wire [1:0]           FORMAT;                 // From u03 of instr_dec.v
    wire [5:0]           FS;                     // From u03 of instr_dec.v
    wire [SIZE-1:0]      F_OUT;                  // From u09 of func_unit.v
-   wire [1:0]           MAB_SEL;                // From u03 of instr_dec.v
+   wire [2:0]           MAB_SEL;                // From u03 of instr_dec.v
    wire [15:0]          MAB_in;                 // From u01 of mux_mab.v
+   wire [2:0]           MC;                     // From u03 of instr_dec.v
    wire [1:0]           MD;                     // From u03 of instr_dec.v
    wire [15:0]          MDB_out;                // From u00 of mem_space.v
    wire [2:0]           MPC;                    // From u03 of instr_dec.v
@@ -59,7 +60,8 @@ module pipeline #(parameter SIZE=16)
       // Inputs
       .CALC_OUT                         (CALC_OUT[15:0]),
       .Dout                             (Dout[15:0]),
-      .MAB_SEL                          (MAB_SEL[1:0]),
+      .MAB_SEL                          (MAB_SEL[2:0]),
+      .MDB_out                          (MDB_out[15:0]),
       .Sout                             (Sout[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]),
       .reg_SP_out                       (reg_SP_out[15:0]));
@@ -74,7 +76,8 @@ module pipeline #(parameter SIZE=16)
       .BW                               (BW),
       .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
-      .MAB_SEL                          (MAB_SEL[1:0]),
+      .MAB_SEL                          (MAB_SEL[2:0]),
+      .MC                               (MC[2:0]),
       .MD                               (MD[1:0]),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
@@ -140,10 +143,10 @@ module pipeline #(parameter SIZE=16)
       // Outputs
       .reg_Din                          (reg_Din[15:0]),
       // Inputs
+      .CALC_OUT                         (CALC_OUT[15:0]),
       .F_OUT                            (F_OUT[15:0]),
       .MD                               (MD[1:0]),
-      .MDB_out                          (MDB_out[15:0]),
-      .Sout                             (Sout[15:0]));
+      .MDB_out                          (MDB_out[15:0]));
    
 
    
