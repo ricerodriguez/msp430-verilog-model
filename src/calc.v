@@ -17,7 +17,7 @@ module calc
    initial
      begin
         CALC_OUT   <= 0;
-        MDB_last   <= 0;
+        // MDB_last   <= 0;
         Sout_last1 <= 0;
         Sout_last2 <= 0;
         Sout_last3 <= 0;

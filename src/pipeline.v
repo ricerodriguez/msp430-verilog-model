@@ -1,12 +1,11 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in, CALC_OUT
+   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in
    );
 
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
-   input [15:0]         CALC_OUT;               // To u01 of mux_mab.v, ...
    input [15:0]         MDB_in;                 // To u00 of mem_space.v
    input [15:0]         RST_VEC;                // To u04 of reg_file.v
    input                clk;                    // To u00 of mem_space.v, ...
@@ -16,15 +15,20 @@ module pipeline #(parameter SIZE=16)
    // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
+   wire [15:0]          A;                      // From u11 of mux_a.v
    wire [2:0]           AdAs;                   // From u03 of instr_dec.v
+   wire [15:0]          B;                      // From u12 of mux_b.v
    wire                 BW;                     // From u03 of instr_dec.v
+   wire [15:0]          CALC_OUT;               // From u13 of calc.v
    wire [3:0]           CVNZ_func;              // From u09 of func_unit.v
    wire [15:0]          Dout;                   // From u04 of reg_file.v
    wire [1:0]           FORMAT;                 // From u03 of instr_dec.v
    wire [5:0]           FS;                     // From u03 of instr_dec.v
    wire [SIZE-1:0]      F_OUT;                  // From u09 of func_unit.v
+   wire [1:0]           MA;                     // From u03 of instr_dec.v
    wire [2:0]           MAB_SEL;                // From u03 of instr_dec.v
    wire [15:0]          MAB_in;                 // From u01 of mux_mab.v
+   wire [1:0]           MB;                     // From u03 of instr_dec.v
    wire [2:0]           MC;                     // From u03 of instr_dec.v
    wire [1:0]           MD;                     // From u03 of instr_dec.v
    wire [15:0]          MDB_out;                // From u00 of mem_space.v
@@ -76,7 +80,9 @@ module pipeline #(parameter SIZE=16)
       .BW                               (BW),
       .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
+      .MA                               (MA[1:0]),
       .MAB_SEL                          (MAB_SEL[2:0]),
+      .MB                               (MB[1:0]),
       .MC                               (MC[2:0]),
       .MD                               (MD[1:0]),
       .MPC                              (MPC[2:0]),
@@ -127,14 +133,14 @@ module pipeline #(parameter SIZE=16)
    //   (/*AUTOINST*/);
 
    func_unit u09
-     (.A(Sout),
-      .B(Dout),
-      .Cin(reg_SR_out[0]),
+     (.Cin(reg_SR_out[0]),
       /*AUTOINST*/
       // Outputs
       .CVNZ_func                        (CVNZ_func[3:0]),
       .F_OUT                            (F_OUT[SIZE-1:0]),
       // Inputs
+      .A                                (A[SIZE-1:0]),
+      .B                                (B[SIZE-1:0]),
       .BW                               (BW),
       .FS                               (FS[5:0]));
 
@@ -147,6 +153,39 @@ module pipeline #(parameter SIZE=16)
       .F_OUT                            (F_OUT[15:0]),
       .MD                               (MD[1:0]),
       .MDB_out                          (MDB_out[15:0]));
+
+   mux_a u11
+     (/*AUTOINST*/
+      // Outputs
+      .A                                (A[15:0]),
+      // Inputs
+      .CALC_OUT                         (CALC_OUT[15:0]),
+      .MA                               (MA[1:0]),
+      .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]));
+   
+   mux_b u12
+     (/*AUTOINST*/
+      // Outputs
+      .B                                (B[15:0]),
+      // Inputs
+      .CALC_OUT                         (CALC_OUT[15:0]),
+      .Dout                             (Dout[15:0]),
+      .MB                               (MB[1:0]),
+      .MDB_out                          (MDB_out[15:0]));
+
+   calc u13
+     (/*AUTOINST*/
+      // Outputs
+      .CALC_OUT                         (CALC_OUT[15:0]),
+      // Inputs
+      .Dout                             (Dout[15:0]),
+      .MC                               (MC[1:0]),
+      .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]),
+      .clk                              (clk));
+   
+   
    
 
    

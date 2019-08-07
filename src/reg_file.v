@@ -21,6 +21,7 @@ module reg_file
 
    // Initialize registers (for debugging)
    reg [15:0]    regs [15:0];
+   reg [15:0]    reg_Din_last;
    reg [3:0]     reg_SA_last, reg_DA_last;
    
    integer       i;
@@ -28,9 +29,10 @@ module reg_file
      begin
         reg_DA_last <= 0;
         reg_SA_last <= 0;
+        reg_Din_last <= 0;
         // regs[0] = RST_VEC;
         for (i=0;i<16;i=i+1)
-          regs[i] = 'hc000 + i;
+          regs[i] = i;
      end
 
    // Addressable registers
@@ -44,11 +46,11 @@ module reg_file
              regs[0] <= RST_VEC; // ROM[FFFE]
           end
         // Write to registers
-        else if (RW)
+        else if ((RW) && (reg_DA != 3))
           begin
-             if (&As)
-               regs[reg_DA_last] <= reg_Din;
-             else
+             // if (&As)
+             //   regs[reg_DA_last] <= reg_Din_last;
+             // else
                regs[reg_DA] <= reg_Din;
              // // Autoincrement mode
              // if (&As)
@@ -77,11 +79,13 @@ module reg_file
      begin
         reg_SA_last <= reg_SA;
         reg_DA_last <= reg_DA;
+        reg_Din_last <= reg_Din;
         // Latch the incoming PC and SP
-        regs[0] <= (rst)                                     ? RST_VEC     : 
+        regs[0] <= (rst)                                     ? RST_VEC     :
+                   (~write_to_PC) || (reg_DA == 4'bx)        ? reg_PC_in   :
+                   (reg_Din === 16'bx)                        ? reg_PC_in   :
                    (write_to_PC && valid_reg_Din_PC)         ? reg_Din     :
-                   (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : 
-                   (reg_PC_in === 16'bx)                     ? RST_VEC     : reg_PC_in;
+                   (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : reg_PC_in;
         regs[1] <= (write_to_SP)                             ? reg_Din     : reg_SP_in;
         regs[2] <= (write_to_SR)                             ? reg_Din     : reg_SR_in;
         regs[3] <= reg_CR2_out;        
