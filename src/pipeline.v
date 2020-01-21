@@ -24,6 +24,7 @@ module pipeline #(parameter SIZE=16)
    wire [15:0]          Dout;                   // From u04_reg_file of reg_file.v
    wire [1:0]           FORMAT;                 // From u03_instr_dec of instr_dec.v
    wire [5:0]           FS;                     // From u03_instr_dec of instr_dec.v
+   wire                 FUNC_en;                // From u13_calc of calc.v
    wire [SIZE-1:0]      F_out;                  // From u09_func_unit of func_unit.v
    wire                 MA;                     // From u03_instr_dec of instr_dec.v
    wire [15:0]          MAB_in;                 // From u01_mux_mab of mux_mab.v
@@ -155,7 +156,9 @@ module pipeline #(parameter SIZE=16)
       .A                                (A[SIZE-1:0]),
       .B                                (B[SIZE-1:0]),
       .BW                               (BW),
-      .FS                               (FS[5:0]));
+      .FS                               (FS[5:0]),
+      .FUNC_en                          (FUNC_en),
+      .MDB_out                          (MDB_out[15:0]));
 
    mux_din u10_mux_din
      (/*AUTOINST*/
@@ -184,14 +187,16 @@ module pipeline #(parameter SIZE=16)
       .B                                (B[15:0]),
       // Inputs
       .Dout                             (Dout[15:0]),
-      .MB                               (MB),
-      .MDB_out                          (MDB_out[15:0]));
+      .MB                               (MB[1:0]),
+      .MDB_out                          (MDB_out[15:0]),
+      .clk                              (clk));
 
    calc u13_calc
      (/*AUTOINST*/
       // Outputs
       .CALC_done                        (CALC_done),
       .CALC_out                         (CALC_out[15:0]),
+      .FUNC_en                          (FUNC_en),
       // Inputs
       .AdAs                             (AdAs[2:0]),
       .Dout                             (Dout[15:0]),

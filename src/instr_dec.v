@@ -48,7 +48,8 @@ module instr_dec
    localparam 
      FMT_I    = 1, FMT_II   = 2, FMT_J    = 3,
      MAB_PC   = 0, MAB_MDB  = 1, MAB_CALC = 2,
-     MAB_Sout = 3, MAB_Dout = 4, MAB_SP   = 5;
+     MAB_Sout = 3;
+   
 
 
    // Registers
@@ -73,7 +74,6 @@ module instr_dec
    
 
    // Wires
-   // wire [15:0] INSTRUCTION;
    wire        USING_CONST_GEN;
    wire        PASSING_INSTR;
    
@@ -81,9 +81,6 @@ module instr_dec
 
    assign PASSING_INSTR = (MAB_in == reg_PC_out) ? 1 : 0;
    // FORMAT: 1 = Format 1, 2 = Format 2, 3 = Jump, X = Unknown
-   // assign FORMAT_ASYNC = (MDB_instruction[15:13] == `OP_JUMP) ? FMT_J  :
-   //                       (MDB_instruction[15:12] == 4'b0001)  ? FMT_II :
-   //                       (MDB_instruction[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
 
    assign USING_CONST_GEN = ((FORMAT == FMT_I)  && (MDB_instruction[11:8] == 3)) ||
                             ((FORMAT == FMT_II) && (MDB_instruction[3:0]  == 3)) ? 1'b1 : 0;
@@ -94,33 +91,23 @@ module instr_dec
 
    assign reg_DA_prelatch = (FORMAT <= FMT_II) ? MDB_instruction[3:0]  : 4'bx;
 
-   // assign MAB_sel = 
-   //                  (AdAs_KNOWN == 3'b001) && (count >= 1) ? 2 :
-   //                  (AdAs_KNOWN == 3'b010) && (count == 1) ? 3 :
-   //                  (AdAs_KNOWN == 3'b011) && (count == 1) ? 3 : 0;
-
    assign MC = AdAs[2] || (AdAs[1:0] == 2'b01) ? 1 : 0;
 
    // MUX sel for MAB
-   assign MAB_sel = (AdAs == 3'b000) || (AdAs[2]) || (AdAs[1:0] == 2'b01) ? MAB_PC :
+   assign MAB_sel = (!AdAs) ? MAB_PC :
                     // Indirect register/autoincrement mode
                     MC ? MAB_CALC : MAB_PC;
 
-   // assign MA = ((&AdAs_KNOWN[1:0])
-   //              && ~PASS_INSTR 
-   //              && (MDB_out != INSTRUCTION_KNOWN))? 1 : 0;
-   // assign MB = (AdAs_KNOWN[2]) ? 2 : 0;
-
-   // assign RW = (pre_RW && )
+   assign RW = ~MW && (pre_RW && PASSING_INSTR) ? 1 : 0;
 
    assign MW = AdAs[2] ? 1 : 0;
    assign MDB_sel = MW && ~PASSING_INSTR ? 1 : 0;
 
    // MUX A determines what goes into the A side of the function unit
    assign MA = !AdAs[1:0] ? 2'h0 : // Register mode
-               ~PASSING_INSTR && (AdAs == 3'b001) ? 2'h1 :
-               ~PASSING_INSTR && (AdAs == 3'b101) ? 2'h2 :
-               
+               ~PASSING_INSTR && (AdAs == 3'b001) ? 2'h2 :
+               ~PASSING_INSTR && (AdAs == 3'b101) ? 2'h3 : 2'h0;
+                  
                // Anything else uses MDB eventually
                // |AdAs[1:0] ? 1'b1 : 1'b0;
 
@@ -144,14 +131,6 @@ module instr_dec
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11) && !MPC       ? 2'h2 : 2'h0;
    
-   
-      // 0 = F_OUT, 1 = MDB, 2 = CALC
-   // assign MD = (AdAs_KNOWN == 3'b001) ? 1 :
-   //             (AdAs_KNOWN == 3'b000) && (count == 0) ? 0 :
-   //             (&AdAs_KNOWN[1:0])     && (MDB_out != INSTRUCTION_KNOWN) ? 0 : 
-   //             (AdAs_KNOWN == 3'b001) && (count == 2) ? 2 : 'bx;
-
-
    // Latch outputs
    always @ (negedge clk)
      begin
@@ -176,14 +155,14 @@ module instr_dec
         
         
         // Latch BW
-        BW <= (FORMAT <= FMT_II) ? INSTRUCTION[6] : BW;
+        BW <= (FORMAT <= FMT_II) ? MDB_instruction[6] : BW;
         
         // And now to determine FS code... First, what format is this in?
         if (PASSING_INSTR)
           case (FORMAT)
             // For FMT I, check these bits
             FMT_I:
-              case (INSTRUCTION[15:12])
+              case (MDB_instruction[15:12])
                 `OP_MOV:     {pre_RW,FS} <= {1'b1,`FS_MOV};
                 `OP_ADD:     {pre_RW,FS} <= {1'b1,`FS_ADD};
                 `OP_ADDC:    {pre_RW,FS} <= {1'b1,`FS_ADDC};
@@ -197,11 +176,11 @@ module instr_dec
                 `OP_XOR:     {pre_RW,FS} <= {1'b1,`FS_XOR}; 
                 `OP_AND:     {pre_RW,FS} <= {1'b1,`FS_AND};
                 default:     {pre_RW,FS} <= {1'b0,FS}; // If it is not a valid op, just clear out
-              endcase // case (INSTRUCTION[15:12])
+              endcase // case (MDB_instruction[15:12])
 
             // For FMT II, check these bits
             FMT_II:
-              case (INSTRUCTION[15:7])
+              case (MDB_instruction[15:7])
                 `OP_RRC:     {pre_RW,FS} <= {1'b1,`FS_RRC};//1
                 `OP_SWPB:    {pre_RW,FS} <= {1'b1,`FS_SWPB};//0
                 `OP_RRA:     {pre_RW,FS} <= {1'b1,`FS_RRA};//1
@@ -217,133 +196,8 @@ module instr_dec
             default:         {pre_RW,FS} <= {1'b0,FS};
           endcase // case (FORMAT)
         else // if NOT passing instruction
-          {pre_RW,FS} <= {pre_RW,FS} // Latch pre_RW and FS
+          {pre_RW,FS} <= {pre_RW,FS}; // Latch pre_RW and FS
 
      end // always @ (negedge clk)
-
-   // Determines instruction length
-   // always @ (negedge clk)
-   //   begin
-   //      if (!count)
-   //        begin
-   //           PASS_INSTR <= 1;
-   //           // Tell PC to go to next PC on the next clock tick
-   //           MPC <= 1;
-   //           // Is this a jump?
-   //           if (FORMAT == FMT_J)
-   //             // If so, set PC to shift the offset
-   //             MPC <= 3;
-   //           // Otherwise, is it one of the other two valid formats?
-   //           else if (FORMAT_ASYNC == FMT_I || FORMAT_ASYNC == FMT_II)
-   //             casex (INSTRUCTION[5:4])
-   //               // REGISTER MODE (00)
-   //               2'b00:
-   //                 //  1 (for dst X)
-   //                 // +1 (for mem access X+Rm)
-   //                 // ---
-   //                 //  2 total
-   //                 if ((FORMAT_ASYNC == FMT_I) && INSTRUCTION[7])
-   //                   begin
-   //                      count <= 2;
-   //                      PASS_INSTR <= 0;
-   //                   end  
-   //                 else
-   //                   count <= 0;
-
-   //               // INDEXED MODE (01)
-   //               2'b01:
-   //                 //  1 (for src X)
-   //                 // +1 (for mem access X+Rn)
-   //                 // +1 (for dst X)
-   //                 // +1 (for mem access X+Rm)
-   //                 // ---
-   //                 // 4 total
-   //                 if ((FORMAT_ASYNC == FMT_I) && INSTRUCTION[7])
-   //                   begin
-   //                      count <= (USING_CONST_GEN) ? 2 : 4;
-   //                      PASS_INSTR <= 0;
-   //                   end  
-   //                 else
-   //                   if (USING_CONST_GEN)
-   //                     count <= 0;
-   //                   else
-   //                     begin
-   //                        count <= 2;
-   //                        PASS_INSTR <= 0;
-   //                     end  
-   
-   //               // INDIRECT REGISTER MODE (10)
-   //               2'b10:
-   //                 // Check if dst is indexed
-   //                 //  1 (for mem access Rn)
-   //                 // +1 (for dst X)
-   //                 // +1 (for mem access X+Rm)
-   //                 // ---
-   //                 //  3 total
-   //                 if ((FORMAT_ASYNC == FMT_I) && INSTRUCTION[7])
-   //                   begin
-   //                      count <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 3 : 
-   //                               (USING_CONST_GEN)                   ? 0 : 1;
-   //                      PASS_INSTR <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 0 :
-   //                                    (USING_CONST_GEN)                   ? 1 : 0;
-   //                   end  
-   //                 else
-   //                   begin
-   //                      count <= 1;
-   //                      PASS_INSTR <= 0;
-   //                   end  
-
-   //               // INDIRECT AUTOINCREMENT MODE (11)
-   //               2'b11:
-   //                 // If As = 11, then it's either immediate or indirect
-   //                 // autoincrement. The only difference is the source
-   //                 // register. So check if there is anything there.
-   //                 // We have to do this because immediate mode contains
-   //                 // an extra word in ROM for the constant.
-   //                 if ((FORMAT_ASYNC == FMT_I) && !INSTRUCTION[11:8])
-   //                   // If the dst mode is indexed and it isn't using the constant
-   //                   // generator, add an extra one to the count. Otherwise, if it's
-   //                   // using the constant generator, keep it 0 and otherwise keep it 
-
-   //                   //  1 for mem access Rn
-   //                   // +1 for dst X
-   //                   // +1 for mem access X+Rm
-   //                   // ---
-   //                   //  3 for total count
-   //                   begin
-   //                      count <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 3 : 
-   //                               (USING_CONST_GEN)                   ? 0 : 1;
-   //                      PASS_INSTR <= (INSTRUCTION[7] & ~USING_CONST_GEN) ? 0 :
-   //                                    (USING_CONST_GEN)                   ? 1 : 0;
-   //                   end  
-   //               // Check if it's immediate in other format
-   //                 else if ((FORMAT_ASYNC == FMT_II) && !INSTRUCTION[3:0])
-   //                   begin
-   //                      count <= 2;
-   //                      PASS_INSTR <= 0;
-   //                   end  
-   //               // Otherwise, just add 1 for the memory access
-   //                 else
-   //                   begin
-   //                      count <= 1;
-   //                      PASS_INSTR <= 0;
-   //                   end  
-   
-   //               default: count <= 0;
-   //             endcase // casex (INSTRUCTION[5:4])
-   //        end // if (~start)
-   //      else
-   //        begin
-   //           // Set PC and SR to hold value
-   //           // {MPC,MSR} <= 0;
-   //           // Don't decrement if instruction hasn't changed
-   //           if (MDB_out == MDB_last)
-   //             count <= count;
-   //           // Decrement counter of instruction length
-   //           else if (count)
-   //             // count <= count - 1;
-   //             count <= count - 1;
-   //        end  
-   //   end // always @ (negedge clk)
 
 endmodule
