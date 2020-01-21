@@ -32,7 +32,7 @@ module reg_file
         reg_Din_last <= 0;
         // regs[0] = RST_VEC;
         for (i=0;i<16;i=i+1)
-          regs[i] = i;
+          regs[i] = 'hc000 + i;
      end
 
    // Addressable registers
@@ -48,13 +48,7 @@ module reg_file
         // Write to registers
         else if ((RW) && (reg_DA != 3))
           begin
-             // if (&As)
-             //   regs[reg_DA_last] <= reg_Din_last;
-             // else
                regs[reg_DA] <= reg_Din;
-             // // Autoincrement mode
-             // if (&As)
-             //   regs[reg_SA] <= regs[reg_SA]+1;
           end  
      end // always @ (posedge clk)
 
@@ -83,7 +77,7 @@ module reg_file
         // Latch the incoming PC and SP
         regs[0] <= (rst)                                     ? RST_VEC     :
                    (~write_to_PC) || (reg_DA == 4'bx)        ? reg_PC_in   :
-                   (reg_Din === 16'bx)                        ? reg_PC_in   :
+                   (reg_Din === 16'bx)                       ? reg_PC_in   :
                    (write_to_PC && valid_reg_Din_PC)         ? reg_Din     :
                    (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : reg_PC_in;
         regs[1] <= (write_to_SP)                             ? reg_Din     : reg_SP_in;

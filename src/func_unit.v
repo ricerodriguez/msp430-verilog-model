@@ -1,11 +1,13 @@
 module func_unit #(parameter SIZE=16)
-  (input [SIZE-1:0]  A, B, 
+  (input             FUNC_en,
+   input [SIZE-1:0]  A, B, 
    input [5:0]       FS,
    input             Cin,
    input             BW,
+   input [15:0]      MDB_out,
    // output            C, V, N, Z,
    output [3:0]      CVNZ_func,
-   output [SIZE-1:0] F_OUT);
+   output [SIZE-1:0] F_out);
 
    wire              Cin_mux_out;
    wire [SIZE-1:0]   ALU_OUT, SHIFT_OUT;
@@ -18,7 +20,8 @@ module func_unit #(parameter SIZE=16)
    assign DST = !FS[2] ? B : A;
 
    // MUX F decides output from ALU or shifter
-   assign F_OUT     = !FS[5] ? ALU_OUT  : SHIFT_OUT;
+   assign F_out     = FUNC_en && !FS[5] ? ALU_OUT   : 
+                      FUNC_en && FS[5]  ? SHIFT_OUT : MDB_out;
    assign CVNZ_func = !FS[5] ? CVNZ_alu : CVNZ_shift;
    
 

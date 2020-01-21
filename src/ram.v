@@ -14,8 +14,8 @@ module ram
    reg [7:0]     mem_ram [SIZE-1:0];
    initial 
      begin
-        $readmemh("tester.mem",mem_ram);
-        $readmemh("clear.mem",mem_ram,29);
+        $readmemh("mems/tester.mem",mem_ram,0,28);
+        // $readmemh("mems/clear.mem",mem_ram,59);
      end  
 
    // Double fetch for 16-bits

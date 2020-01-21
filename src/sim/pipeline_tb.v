@@ -23,15 +23,18 @@ module pipeline_tb;
 
 
    always #5 clk = ~clk;
+   initial $monitor($time, "reset=%b, clk=%b",rst,clk);
    initial
      begin
+        $dumpfile("dmp/pipeline_tb_01.vcd");
+        $dumpvars(0,pipeline_tb);
         {clk,MDB_in} <= 0;
         rst <= 1;
         reg_SP_in <= 'h0400;
         reg_SR_in <= 0;
         RST_VEC <= 'hc000;        
         #5 rst <= 0;
-        
+        #1000 $dumpflush;
      end
 
 endmodule

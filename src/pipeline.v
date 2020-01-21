@@ -1,101 +1,114 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, reg_SP_in, clk, RST_VEC, MDB_in
+   rst, reg_SR_in, reg_SP_in, clk, RST_VEC
    );
 
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
-   input [15:0]         MDB_in;                 // To u00 of mem_space.v
-   input [15:0]         RST_VEC;                // To u04 of reg_file.v
-   input                clk;                    // To u00 of mem_space.v, ...
-   input [15:0]         reg_SP_in;              // To u04 of reg_file.v
-   input [15:0]         reg_SR_in;              // To u04 of reg_file.v
-   input                rst;                    // To u04 of reg_file.v
+   input [15:0]         RST_VEC;                // To u04_reg_file of reg_file.v
+   input                clk;                    // To u00_mem_space of mem_space.v, ...
+   input [15:0]         reg_SP_in;              // To u04_reg_file of reg_file.v
+   input [15:0]         reg_SR_in;              // To u04_reg_file of reg_file.v
+   input                rst;                    // To u04_reg_file of reg_file.v
    // End of automatics
    /*AUTOWIRE*/
    // Beginning of automatic wires (for undeclared instantiated-module outputs)
-   wire [15:0]          A;                      // From u11 of mux_a.v
-   wire [2:0]           AdAs;                   // From u03 of instr_dec.v
-   wire [15:0]          B;                      // From u12 of mux_b.v
-   wire                 BW;                     // From u03 of instr_dec.v
-   wire [15:0]          CALC_OUT;               // From u13 of calc.v
-   wire [3:0]           CVNZ_func;              // From u09 of func_unit.v
-   wire [15:0]          Dout;                   // From u04 of reg_file.v
-   wire [1:0]           FORMAT;                 // From u03 of instr_dec.v
-   wire [5:0]           FS;                     // From u03 of instr_dec.v
-   wire [SIZE-1:0]      F_OUT;                  // From u09 of func_unit.v
-   wire [1:0]           MA;                     // From u03 of instr_dec.v
-   wire [2:0]           MAB_SEL;                // From u03 of instr_dec.v
-   wire [15:0]          MAB_in;                 // From u01 of mux_mab.v
-   wire [1:0]           MB;                     // From u03 of instr_dec.v
-   wire [2:0]           MC;                     // From u03 of instr_dec.v
-   wire [1:0]           MD;                     // From u03 of instr_dec.v
-   wire [15:0]          MDB_out;                // From u00 of mem_space.v
-   wire [2:0]           MPC;                    // From u03 of instr_dec.v
-   wire [1:0]           MSP;                    // From u03 of instr_dec.v
-   wire                 MSR;                    // From u03 of instr_dec.v
-   wire                 RW;                     // From u03 of instr_dec.v
-   wire [15:0]          Sout;                   // From u04 of reg_file.v
-   wire [3:0]           reg_DA;                 // From u03 of instr_dec.v
-   wire [15:0]          reg_Din;                // From u10 of mux_din.v
-   wire [15:0]          reg_PC_in;              // From u05 of mux_pc.v
-   wire [15:0]          reg_PC_out;             // From u04 of reg_file.v
-   wire [3:0]           reg_SA;                 // From u03 of instr_dec.v
-   wire [15:0]          reg_SP_out;             // From u04 of reg_file.v
-   wire [15:0]          reg_SR_out;             // From u04 of reg_file.v
+   wire [15:0]          A;                      // From u11_mux_a of mux_a.v
+   wire [2:0]           AdAs;                   // From u03_instr_dec of instr_dec.v
+   wire [15:0]          B;                      // From u12_mux_b of mux_b.v
+   wire                 BW;                     // From u03_instr_dec of instr_dec.v
+   wire                 CALC_done;              // From u13_calc of calc.v
+   wire [15:0]          CALC_out;               // From u13_calc of calc.v
+   wire [3:0]           CVNZ_func;              // From u09_func_unit of func_unit.v
+   wire [15:0]          Dout;                   // From u04_reg_file of reg_file.v
+   wire [1:0]           FORMAT;                 // From u03_instr_dec of instr_dec.v
+   wire [5:0]           FS;                     // From u03_instr_dec of instr_dec.v
+   wire [SIZE-1:0]      F_out;                  // From u09_func_unit of func_unit.v
+   wire                 MA;                     // From u03_instr_dec of instr_dec.v
+   wire [15:0]          MAB_in;                 // From u01_mux_mab of mux_mab.v
+   wire [2:0]           MAB_sel;                // From u03_instr_dec of instr_dec.v
+   wire                 MB;                     // From u03_instr_dec of instr_dec.v
+   wire                 MC;                     // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MD;                     // From u03_instr_dec of instr_dec.v
+   wire [15:0]          MDB_in;                 // From u02 of mux_mdb.v
+   wire [15:0]          MDB_out;                // From u00_mem_space of mem_space.v
+   wire                 MDB_sel;                // From u03_instr_dec of instr_dec.v
+   wire [2:0]           MPC;                    // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MSP;                    // From u03_instr_dec of instr_dec.v
+   wire                 MSR;                    // From u03_instr_dec of instr_dec.v
+   wire                 MW;                     // From u03_instr_dec of instr_dec.v
+   wire                 RW;                     // From u03_instr_dec of instr_dec.v
+   wire [15:0]          Sout;                   // From u04_reg_file of reg_file.v
+   wire [3:0]           reg_DA;                 // From u03_instr_dec of instr_dec.v
+   wire [15:0]          reg_Din;                // From u10_mux_din of mux_din.v
+   wire [15:0]          reg_PC_in;              // From u05_mux_pc of mux_pc.v
+   wire [15:0]          reg_PC_out;             // From u04_reg_file of reg_file.v
+   wire [3:0]           reg_SA;                 // From u03_instr_dec of instr_dec.v
+   wire [15:0]          reg_SP_out;             // From u04_reg_file of reg_file.v
+   wire [15:0]          reg_SR_out;             // From u04_reg_file of reg_file.v
    // End of automatics
 
-   mem_space u00
-     (.MW(RW),
-      /*AUTOINST*/
+   mem_space u00_mem_space
+     (/*AUTOINST*/
       // Outputs
       .MDB_out                          (MDB_out[15:0]),
       // Inputs
       .BW                               (BW),
       .MAB_in                           (MAB_in[15:0]),
       .MDB_in                           (MDB_in[15:0]),
+      .MW                               (MW),
       .clk                              (clk));   
 
-   mux_mab u01
+   mux_mab u01_mux_mab
      (/*AUTOINST*/
       // Outputs
       .MAB_in                           (MAB_in[15:0]),
       // Inputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
-      .Dout                             (Dout[15:0]),
-      .MAB_SEL                          (MAB_SEL[2:0]),
+      .CALC_done                        (CALC_done),
+      .CALC_out                         (CALC_out[15:0]),
+      .MAB_sel                          (MAB_sel[1:0]),
       .MDB_out                          (MDB_out[15:0]),
-      .Sout                             (Sout[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]),
       .reg_SP_out                       (reg_SP_out[15:0]));
 
-   // mux_mdb u02
-   //   (/*AUTOINST*/);   
+   mux_mdb u02
+     (/*AUTOINST*/
+      // Outputs
+      .MDB_in                           (MDB_in[15:0]),
+      // Inputs
+      .F_out                            (F_out[15:0]),
+      .MDB_out                          (MDB_out[15:0]),
+      .MDB_sel                          (MDB_sel));   
 
-   instr_dec u03
+   instr_dec u03_instr_dec
      (/*AUTOINST*/
       // Outputs
       .AdAs                             (AdAs[2:0]),
       .BW                               (BW),
       .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
-      .MA                               (MA[1:0]),
-      .MAB_SEL                          (MAB_SEL[2:0]),
-      .MB                               (MB[1:0]),
-      .MC                               (MC[2:0]),
+      .MA                               (MA),
+      .MAB_sel                          (MAB_sel[2:0]),
+      .MB                               (MB),
+      .MC                               (MC),
       .MD                               (MD[1:0]),
+      .MDB_sel                          (MDB_sel),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
       .MSR                              (MSR),
+      .MW                               (MW),
       .RW                               (RW),
       .reg_DA                           (reg_DA[3:0]),
       .reg_SA                           (reg_SA[3:0]),
       // Inputs
+      .CALC_done                        (CALC_done),
+      .MAB_in                           (MAB_in[15:0]),
       .MDB_out                          (MDB_out[15:0]),
-      .clk                              (clk));
+      .clk                              (clk),
+      .reg_PC_out                       (reg_PC_out[15:0]));
 
-   reg_file u04
+   reg_file u04_reg_file
      (.As(AdAs[1:0]),
       /*AUTOINST*/
       // Outputs
@@ -116,12 +129,12 @@ module pipeline #(parameter SIZE=16)
       .reg_SR_in                        (reg_SR_in[15:0]),
       .rst                              (rst));
 
-   mux_pc u05
+   mux_pc u05_mux_pc
      (/*AUTOINST*/
       // Outputs
       .reg_PC_in                        (reg_PC_in[15:0]),
       // Inputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
+      .CALC_out                         (CALC_out[15:0]),
       .MDB_out                          (MDB_out[15:0]),
       .MPC                              (MPC[2:0]),
       .reg_PC_out                       (reg_PC_out[15:0]));
@@ -132,62 +145,59 @@ module pipeline #(parameter SIZE=16)
    // mux_sp u07
    //   (/*AUTOINST*/);
 
-   func_unit u09
+   func_unit u09_func_unit
      (.Cin(reg_SR_out[0]),
       /*AUTOINST*/
       // Outputs
       .CVNZ_func                        (CVNZ_func[3:0]),
-      .F_OUT                            (F_OUT[SIZE-1:0]),
+      .F_out                            (F_out[SIZE-1:0]),
       // Inputs
       .A                                (A[SIZE-1:0]),
       .B                                (B[SIZE-1:0]),
       .BW                               (BW),
       .FS                               (FS[5:0]));
 
-   mux_din u10
+   mux_din u10_mux_din
      (/*AUTOINST*/
       // Outputs
       .reg_Din                          (reg_Din[15:0]),
       // Inputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
-      .F_OUT                            (F_OUT[15:0]),
+      .BW                               (BW),
+      .F_out                            (F_out[15:0]),
       .MD                               (MD[1:0]),
-      .MDB_out                          (MDB_out[15:0]));
+      .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]));
 
-   mux_a u11
+   mux_a u11_mux_a
      (/*AUTOINST*/
       // Outputs
       .A                                (A[15:0]),
       // Inputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
       .MA                               (MA[1:0]),
-      .MDB_out                          (MDB_out[15:0]),
-      .Sout                             (Sout[15:0]));
-   
-   mux_b u12
-     (/*AUTOINST*/
-      // Outputs
-      .B                                (B[15:0]),
-      // Inputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
-      .Dout                             (Dout[15:0]),
-      .MB                               (MB[1:0]),
-      .MDB_out                          (MDB_out[15:0]));
-
-   calc u13
-     (/*AUTOINST*/
-      // Outputs
-      .CALC_OUT                         (CALC_OUT[15:0]),
-      // Inputs
-      .Dout                             (Dout[15:0]),
-      .MC                               (MC[1:0]),
       .MDB_out                          (MDB_out[15:0]),
       .Sout                             (Sout[15:0]),
       .clk                              (clk));
    
-   
-   
+   mux_b u12_mux_b
+     (/*AUTOINST*/
+      // Outputs
+      .B                                (B[15:0]),
+      // Inputs
+      .Dout                             (Dout[15:0]),
+      .MB                               (MB),
+      .MDB_out                          (MDB_out[15:0]));
 
+   calc u13_calc
+     (/*AUTOINST*/
+      // Outputs
+      .CALC_done                        (CALC_done),
+      .CALC_out                         (CALC_out[15:0]),
+      // Inputs
+      .AdAs                             (AdAs[2:0]),
+      .Dout                             (Dout[15:0]),
+      .MC                               (MC),
+      .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]),
+      .clk                              (clk));
    
-
 endmodule

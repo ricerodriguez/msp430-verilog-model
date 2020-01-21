@@ -1,6 +1,5 @@
 module rom
   (input [15:0] rom_addr,
-   // input BW,
    output [15:0] rom_out);
 
    parameter  BOUND_U = 16'hffff,
@@ -10,8 +9,8 @@ module rom
    reg [7:0]    mem_rom [SIZE-1:0];
    initial 
      begin
-        $readmemh("tester-02.mem",mem_rom);
-//        $readmemh("clear.mem",mem_rom,6);
+        $readmemh("mems/tester-02.mem",mem_rom,0,13);
+        // $readmemh("mems/clear.mem",mem_rom,);
      end  
 
    // Double fetch for 16-bits
