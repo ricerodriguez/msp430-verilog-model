@@ -22,14 +22,13 @@ module pipeline #(parameter SIZE=16)
    wire [15:0]          CALC_out;               // From u13_calc of calc.v
    wire [3:0]           CVNZ_func;              // From u09_func_unit of func_unit.v
    wire [15:0]          Dout;                   // From u04_reg_file of reg_file.v
-   wire [1:0]           FORMAT;                 // From u03_instr_dec of instr_dec.v
    wire [5:0]           FS;                     // From u03_instr_dec of instr_dec.v
    wire                 FUNC_en;                // From u13_calc of calc.v
    wire [SIZE-1:0]      F_out;                  // From u09_func_unit of func_unit.v
-   wire                 MA;                     // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MA;                     // From u03_instr_dec of instr_dec.v
    wire [15:0]          MAB_in;                 // From u01_mux_mab of mux_mab.v
    wire [2:0]           MAB_sel;                // From u03_instr_dec of instr_dec.v
-   wire                 MB;                     // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MB;                     // From u03_instr_dec of instr_dec.v
    wire                 MC;                     // From u03_instr_dec of instr_dec.v
    wire [1:0]           MD;                     // From u03_instr_dec of instr_dec.v
    wire [15:0]          MDB_in;                 // From u02 of mux_mdb.v
@@ -87,11 +86,10 @@ module pipeline #(parameter SIZE=16)
       // Outputs
       .AdAs                             (AdAs[2:0]),
       .BW                               (BW),
-      .FORMAT                           (FORMAT[1:0]),
       .FS                               (FS[5:0]),
-      .MA                               (MA),
+      .MA                               (MA[1:0]),
       .MAB_sel                          (MAB_sel[2:0]),
-      .MB                               (MB),
+      .MB                               (MB[1:0]),
       .MC                               (MC),
       .MD                               (MD[1:0]),
       .MDB_sel                          (MDB_sel),

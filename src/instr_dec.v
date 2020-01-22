@@ -26,12 +26,12 @@ module instr_dec
    input            CALC_done,
    output [2:0]     MAB_sel,
    output           MDB_sel,
-   output reg [1:0] FORMAT,
+   // output reg [1:0] FORMAT,
    output reg [5:0] FS,
    output reg       BW,
-   output           RW,
+   output reg       RW,
    output           MW,
-   output           MA, MB,
+   output [1:0]     MA, MB,
    output reg [3:0] reg_SA, reg_DA,
    output reg [2:0] AdAs, 
    output [1:0]     MD,
@@ -56,13 +56,15 @@ module instr_dec
    reg [15:0]       MDB_instruction;
    reg [15:0]       MDB_last;
    reg              pre_RW;
-   
+   reg [3:0]        reg_DA_last;
+   reg              reg_DA_holds_SA;
+   reg [1:0]        MD_last;
    
    // Initialize registers
    initial
      begin
         MDB_last    <= 0;
-        FORMAT      <= 0;
+        // FORMAT      <= 0;
         {reg_SA,
          reg_DA}    <= 0; 
         AdAs        <= 0;        
@@ -70,13 +72,18 @@ module instr_dec
         FS         <= 0;
         MDB_instruction <= 0;
         pre_RW <= 0;
+        reg_DA_last <= 0;
+        RW <= 0;
+        reg_DA_holds_SA <= 0;
+        MD_last <= 0;
      end // initial begin
    
 
    // Wires
    wire        USING_CONST_GEN;
    wire        PASSING_INSTR;
-   
+   wire [15:0] MDB_out_flipped;
+   wire [1:0]  FORMAT;
    wire [3:0]  reg_SA_prelatch, reg_DA_prelatch;
 
    assign PASSING_INSTR = (MAB_in == reg_PC_out) ? 1 : 0;
@@ -86,19 +93,22 @@ module instr_dec
                             ((FORMAT == FMT_II) && (MDB_instruction[3:0]  == 3)) ? 1'b1 : 0;
 
    // Extract SA from instruction
-   assign reg_SA_prelatch = (FORMAT == FMT_I)  ? MDB_instruction[11:8] : 
-                            (FORMAT == FMT_II) ? MDB_instruction[3:0]  : 4'bx;
+   assign reg_SA_prelatch = (FORMAT == FMT_I)  ? MDB_out_flipped[11:8] : 
+                            (FORMAT == FMT_II) ? MDB_out_flipped[3:0]  : 4'bx;
 
-   assign reg_DA_prelatch = (FORMAT <= FMT_II) ? MDB_instruction[3:0]  : 4'bx;
+   assign reg_DA_prelatch = (FORMAT <= FMT_II) ? MDB_out_flipped[3:0]  : 4'bx;
 
-   assign MC = AdAs[2] || (AdAs[1:0] == 2'b01) ? 1 : 0;
+   assign MDB_out_flipped = {MDB_out[7:0],MDB_out[15:8]};
+
+   assign MC = (AdAs[2] || (AdAs[1:0] == 2'b01)) ? 1 : 0;
 
    // MUX sel for MAB
    assign MAB_sel = (!AdAs) ? MAB_PC :
                     // Indirect register/autoincrement mode
-                    MC ? MAB_CALC : MAB_PC;
+                    MC ? MAB_CALC    : MAB_PC;
 
-   assign RW = ~MW && (pre_RW && PASSING_INSTR) ? 1 : 0;
+   // START BACK AGAIN FROM HERE! HOW DO I DELAY RW?????
+   // assign RW = ~MW && (pre_RW && PASSING_INSTR) ? 1 : 0;
 
    assign MW = AdAs[2] ? 1 : 0;
    assign MDB_sel = MW && ~PASSING_INSTR ? 1 : 0;
@@ -130,6 +140,11 @@ module instr_dec
    assign MD = (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11) && !MPC       ? 2'h2 : 2'h0;
+
+   assign FORMAT = (MDB_out_flipped[15:13] == `OP_JUMP) ? FMT_J  :
+                   (MDB_out_flipped[15:12] == 4'b0001)  ? FMT_II :
+                   (MDB_out_flipped[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
+   
    
    // Latch outputs
    always @ (negedge clk)
@@ -138,20 +153,63 @@ module instr_dec
         MDB_last <= MDB_out;
 
         // Latch the last instruction
-        MDB_instruction <= (PASSING_INSTR) ? MDB_out : MDB_instruction;
+        MDB_instruction <= (PASSING_INSTR) ? MDB_out_flipped : MDB_instruction;
+
+        // RW latches
+        // RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
         
         // Do the reg_SA latches
         reg_SA <= (PASSING_INSTR) ? reg_SA_prelatch : reg_SA;
-        reg_DA <= (PASSING_INSTR) ? reg_DA_prelatch : reg_DA;
+
+        // If it's indirect autoincrement mode, that means we need to
+        // turn RW on at least to increment the register afterwards
+        if (&AdAs[1:0] && ~reg_DA_holds_SA)
+          begin
+             reg_DA_last <= reg_DA;
+             reg_DA <= reg_SA;
+             reg_DA_holds_SA <= 1;
+             RW <= 1;
+          end
+        else if (&AdAs[1:0])
+          begin
+             RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
+             reg_DA <= reg_DA_last;
+             reg_DA_holds_SA <= 0;
+          end
+        else
+          begin
+             reg_DA <= (PASSING_INSTR) ? reg_DA_prelatch : reg_DA;
+             RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
+          end  
+
+        
+          
+
+        // // MD latch
+        // MD_last <= MD;
+
+        // // reg_DA latches
+        // if ((MD_last == 2'h2) && ~reg_DA_holds_SA)
+        //   begin
+        //      reg_DA_last <= reg_DA;
+        //      reg_DA <= reg_SA;
+        //      reg_DA_holds_SA <= 1;
+        //   end
+        // else
+        //   begin
+        //      reg_DA <= (reg_DA_holds_SA) ? reg_DA_last :
+        //                (PASSING_INSTR) ? reg_DA_prelatch : reg_DA;
+        //      reg_DA_holds_SA <= 0;
+        //   end  
         
         // Latch format of instruction
-        FORMAT <= (MDB_instruction[15:13] == `OP_JUMP) ? FMT_J  :
-                  (MDB_instruction[15:12] == 4'b0001)  ? FMT_II :
-                  (MDB_instruction[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
+        // FORMAT <= (MDB_instruction[15:13] == `OP_JUMP) ? FMT_J  :
+        //           (MDB_instruction[15:12] == 4'b0001)  ? FMT_II :
+        //           (MDB_instruction[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
 
         // Latch Ad/As
-        AdAs <= (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_instruction[7],MDB_instruction[5:4]} :
-                (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_instruction[5:4]}           : AdAs;
+        AdAs <= (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
+                (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : AdAs;
         
         
         // Latch BW

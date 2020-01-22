@@ -26,7 +26,7 @@ module pipeline_tb;
      begin
         $dumpfile("dmp/pipeline_tb_01.vcd");
         $dumpvars(0,pipeline_tb);
-        {clk,MDB_in} <= 0;
+        clk <= 0;
         rst <= 1;
         reg_SP_in <= 'h0400;
         reg_SR_in <= 0;
