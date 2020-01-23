@@ -87,12 +87,19 @@ module instr_dec
    wire [1:0]  FORMAT;
    wire [3:0]  reg_SA_prelatch, reg_DA_prelatch;
    wire [2:0]  AdAs_async;
+   wire        IMM_mode;
 
-   assign AdAs_async = (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
-                       (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : 3'bx;
-
+   assign IMM_mode = (&AdAs_async[1:0] && !reg_SA_prelatch) ? 1 : 0;
+   
+   // assign AdAs_async = (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
+   //                     (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : 3'bx;
+   assign AdAs_async = (FORMAT == FMT_I)  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
+                       (FORMAT == FMT_II) ? {1'bx,MDB_out_flipped[5:4]}           : 3'bx;
 
    assign PASSING_INSTR = (MAB_in == reg_PC_out) ? 1 : 0;
+   // assign PASSING_INSTR = ((MAB_in == reg_PC_out) && ~(IMM_mode && (MD!=2'h2)))  ? 1 : 0;
+   // assign PASSING_INSTR = (MAB_in != reg_PC_out) ? 0 :
+   //                        ~(AdAs_async[1:0] && !reg_SA_prelatch) && !MPC
    // FORMAT: 1 = Format 1, 2 = Format 2, 3 = Jump, X = Unknown
 
    assign USING_CONST_GEN = ((FORMAT == FMT_I)  && (MDB_instruction[11:8] == 3)) ||
@@ -121,7 +128,7 @@ module instr_dec
 
    // MUX A determines what goes into the A side of the function unit
    assign MA = !AdAs[1:0] ? 2'h0 : // Register mode
-               ~PASSING_INSTR && (AdAs == 3'b001) ? 2'h2 :
+               (~PASSING_INSTR && (AdAs == 3'b001)) || (&AdAs[1:0]) ? 2'h2 :
                ~PASSING_INSTR && (AdAs == 3'b101) ? 2'h3 : 2'h0;
                   
                // Anything else uses MDB eventually
@@ -144,6 +151,8 @@ module instr_dec
 
    // How am I gonna get it to work for immediate?
    assign MD = (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
+               // ((&AdAs[1:0]) && !MPC)       ? 2'h2 : 
+               // ((&AdAs[1:0]) && MPC)        ? 2'h1 : 2'h0;
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11) && !MPC       ? 2'h2 : 2'h0;
 
