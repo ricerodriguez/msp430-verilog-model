@@ -24,6 +24,7 @@ module instr_dec
    input [15:0]     MAB_in,
    input [15:0]     reg_PC_out,
    input            CALC_done,
+   input            MD_done,
    output [2:0]     MAB_sel,
    output           MDB_sel,
    // output reg [1:0] FORMAT,
@@ -85,6 +86,11 @@ module instr_dec
    wire [15:0] MDB_out_flipped;
    wire [1:0]  FORMAT;
    wire [3:0]  reg_SA_prelatch, reg_DA_prelatch;
+   wire [2:0]  AdAs_async;
+
+   assign AdAs_async = (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
+                       (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : 3'bx;
+
 
    assign PASSING_INSTR = (MAB_in == reg_PC_out) ? 1 : 0;
    // FORMAT: 1 = Format 1, 2 = Format 2, 3 = Jump, X = Unknown
@@ -132,7 +138,7 @@ module instr_dec
    // Does this need to be two bits? I can't remember why it has a shifter
    assign MPC = 
                 !AdAs || (AdAs[1:0] == 2'b01) ? 2'h1 : // Register/Indexed
-                AdAs[1]                       ? 2'h0 : // Indirect reg/auto
+                AdAs[1] && ~MD_done           ? 2'h0 : // Indirect reg/auto
                 2'h1;
    
 
@@ -163,10 +169,10 @@ module instr_dec
 
         // If it's indirect autoincrement mode, that means we need to
         // turn RW on at least to increment the register afterwards
-        if (&AdAs[1:0] && ~reg_DA_holds_SA)
+        if (&AdAs_async[1:0] && ~reg_DA_holds_SA)
           begin
-             reg_DA_last <= reg_DA;
-             reg_DA <= reg_SA;
+             reg_DA_last <= reg_DA_prelatch;
+             reg_DA <= reg_SA_prelatch;
              reg_DA_holds_SA <= 1;
              RW <= 1;
           end
