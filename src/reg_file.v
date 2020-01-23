@@ -86,24 +86,6 @@ module reg_file
         reg_Din_last <= reg_Din;
         regs[3] <= reg_CG2_out;
      end // always @ (posedge clk)
-
-   
-   // // Increment PC happens inside of MUX PC
-   // always @ (posedge clk)
-   //   begin
-   //      reg_SA_last <= reg_SA;
-   //      reg_DA_last <= reg_DA;
-   //      reg_Din_last <= reg_Din;
-   //      // Latch the incoming PC and SP
-   //      regs[0] <= (rst)                                     ? RST_VEC     :
-   //                 (~write_to_PC) || (reg_DA == 4'bx)        ? reg_PC_in   :
-   //                 (reg_Din === 16'bx)                       ? reg_PC_in   :
-   //                 (write_to_PC && valid_reg_Din_PC)         ? reg_Din     :
-   //                 (write_to_PC && ~valid_reg_Din_PC)        ? RST_VEC     : reg_PC_in;
-   //      regs[1] <= (write_to_SP)                             ? reg_Din     : reg_SP_in;
-   //      regs[2] <= (write_to_SR)                             ? reg_Din     : reg_SR_in;
-   //      regs[3] <= reg_CG2_out;        
-   //   end
    
    // SR special cases
    always @ (*)

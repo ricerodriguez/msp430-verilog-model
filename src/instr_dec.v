@@ -147,6 +147,9 @@ module instr_dec
                 !AdAs || (AdAs[1:0] == 2'b01) ? 2'h1 : // Register/Indexed
                 AdAs[1] && ~MD_done           ? 2'h0 : // Indirect reg/auto
                 2'h1;
+
+   assign MSP = 0; // For now
+   
    
 
    // How am I gonna get it to work for immediate?
