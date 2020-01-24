@@ -68,8 +68,9 @@ module pipeline #(parameter SIZE=16)
       // Inputs
       .CALC_done                        (CALC_done),
       .CALC_out                         (CALC_out[15:0]),
-      .MAB_sel                          (MAB_sel[1:0]),
+      .MAB_sel                          (MAB_sel[2:0]),
       .MDB_out                          (MDB_out[15:0]),
+      .Sout                             (Sout[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]),
       .reg_SP_out                       (reg_SP_out[15:0]));
 
