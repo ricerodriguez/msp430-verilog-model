@@ -161,7 +161,7 @@ module instr_dec
 
    assign FORMAT = (MDB_out_flipped[15:13] == `OP_JUMP) ? FMT_J  :
                    (MDB_out_flipped[15:12] == 4'b0001)  ? FMT_II :
-                   (MDB_out_flipped[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
+                   (MDB_out_flipped[15:12] >= 4'b0100)  ? FMT_I  : 0;
    
    
    // Latch outputs
@@ -200,34 +200,12 @@ module instr_dec
              RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
           end  
 
-        
-          
-
-        // // MD latch
-        // MD_last <= MD;
-
-        // // reg_DA latches
-        // if ((MD_last == 2'h2) && ~reg_DA_holds_SA)
-        //   begin
-        //      reg_DA_last <= reg_DA;
-        //      reg_DA <= reg_SA;
-        //      reg_DA_holds_SA <= 1;
-        //   end
-        // else
-        //   begin
-        //      reg_DA <= (reg_DA_holds_SA) ? reg_DA_last :
-        //                (PASSING_INSTR) ? reg_DA_prelatch : reg_DA;
-        //      reg_DA_holds_SA <= 0;
-        //   end  
-        
-        // Latch format of instruction
-        // FORMAT <= (MDB_instruction[15:13] == `OP_JUMP) ? FMT_J  :
-        //           (MDB_instruction[15:12] == 4'b0001)  ? FMT_II :
-        //           (MDB_instruction[15:12] >= 4'b0100)  ? FMT_I  : 2'bx;
-
         // Latch Ad/As
-        AdAs <= (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
-                (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : AdAs;
+        if (!FORMAT)
+          AdAs <= AdAs;
+        else
+          AdAs <= (PASSING_INSTR && (FORMAT == FMT_I))  ? {MDB_out_flipped[7],MDB_out_flipped[5:4]} :
+                  (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,MDB_out_flipped[5:4]}           : AdAs;
         
         
         // Latch BW
