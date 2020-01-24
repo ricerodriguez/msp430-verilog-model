@@ -115,8 +115,9 @@ module instr_dec
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11) && !MPC       ? 2'h2 : 2'h0;
 
+
    assign MAB_sel = (!AdAs)              ? MAB_PC   :
-                    (AdAs[1:0] == 2'b10) ? MAB_Sout :
+                    // (AdAs[1:0] == 2'b10) ? MAB_Sout :
                     // Indirect register/autoincrement mode
                     MC                   ? MAB_CALC : MAB_PC;
 
