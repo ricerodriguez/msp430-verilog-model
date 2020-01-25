@@ -54,7 +54,7 @@ module instr_dec
 
 
    // Registers
-   reg [15:0]       INSTR_REG;
+   reg [15:0]       INSTR_REG_sync;
    reg [15:0]       INSTR_LAST;
    reg [15:0]       reg_PC_last;
    
@@ -69,7 +69,7 @@ module instr_dec
    initial
      begin
         reg_PC_last <= reg_PC_out;
-        INSTR_REG <= MDB_out;
+        INSTR_REG_sync <= MDB_out;
         INSTR_LAST <= 0;
         // pre_RW <= 0;
         reg_DA_last <= 0;
@@ -84,6 +84,9 @@ module instr_dec
    wire [1:0]  FORMAT;
    wire        IMM_mode;
    wire        pre_RW;
+   wire [15:0] INSTR_REG;
+
+   assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
 
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
@@ -94,7 +97,8 @@ module instr_dec
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
                    (FORMAT == FMT_II) ? INSTR_REG[3:0]  : 4'bx;
 
-   assign reg_DA = (FORMAT <= FMT_II) ? INSTR_REG[3:0]  : 4'bx;
+   assign reg_DA = (FORMAT <= FMT_II) && (IMM_mode && ~IMM_done)  ? reg_SA         :
+                   (FORMAT <= FMT_II)                             ? INSTR_REG[3:0] : 4'bx;
 
    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    // MUX SELECT BITS
@@ -184,19 +188,20 @@ module instr_dec
 
    always @ (negedge clk)
      begin
-        INSTR_LAST <= INSTR_REG;
+        INSTR_LAST <= INSTR_REG_sync;
         reg_DA_last <= reg_DA;
+        
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
+             // INSTR_REG_sync <= (!reg_SA && &AdAs[1:0] && IMM_done)
              // If the last instruction was immediate mode, it's not an instruction
-             INSTR_REG <= (IMM_mode && IMM_done) ? INSTR_LAST : MDB_out;
+             INSTR_REG_sync <= (IMM_mode && IMM_done) ? INSTR_REG_sync : MDB_out;
              IMM_done <= (IMM_mode && ~IMM_done) ? 1 : 0;
           end
         else
-          INSTR_REG <= INSTR_LAST;
-     end
-   
+          INSTR_REG_sync <= INSTR_LAST;
+     end // always @ (negedge clk)
 
    
    // // Latch outputs
