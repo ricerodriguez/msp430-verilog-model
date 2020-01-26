@@ -54,6 +54,7 @@ module instr_dec
 
 
    // Registers
+   // reg [15:0]       INSTR_REG;
    reg [15:0]       INSTR_REG_sync;
    reg [15:0]       INSTR_LAST;
    reg [15:0]       reg_PC_last;
@@ -63,13 +64,17 @@ module instr_dec
    reg              reg_DA_holds_SA;
    reg [1:0]        MD_last;
    reg              IMM_done; // Immediate mode instruction is already in IR
+   reg [15:0]       MAB_last;
+   reg [15:0]       MAB_IMM;
+   
    
    
    // Initialize registers
    initial
      begin
         reg_PC_last <= reg_PC_out;
-        INSTR_REG_sync <= MDB_out;
+        // INSTR_REG <= 0;
+        INSTR_REG_sync <= 0;
         INSTR_LAST <= 0;
         // pre_RW <= 0;
         reg_DA_last <= 0;
@@ -77,6 +82,8 @@ module instr_dec
         reg_DA_holds_SA <= 0;
         MD_last <= 0;
         IMM_done <= 0;
+        MAB_last <= 0;
+        MAB_IMM <= 0;
      end // initial begin
    
 
@@ -85,13 +92,17 @@ module instr_dec
    wire        IMM_mode;
    wire        pre_RW;
    wire [15:0] INSTR_REG;
+   
+   // wire        IMM_done_async;
 
    assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
-
+   
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
 
    assign IMM_mode = (&AdAs[1:0] && !reg_SA) ? 1 : 0;
+
+   // assign IMM_done_async = (IMM_mode) ? ~IMM_done : 0;
 
    // Extract SA from instruction
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
@@ -188,107 +199,25 @@ module instr_dec
 
    always @ (negedge clk)
      begin
-        INSTR_LAST <= INSTR_REG_sync;
+        INSTR_LAST <= INSTR_REG;
         reg_DA_last <= reg_DA;
-        
+        MAB_last <= MAB_in;
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
-             // INSTR_REG_sync <= (!reg_SA && &AdAs[1:0] && IMM_done)
              // If the last instruction was immediate mode, it's not an instruction
              INSTR_REG_sync <= (IMM_mode && IMM_done) ? INSTR_REG_sync : MDB_out;
-             IMM_done <= (IMM_mode && ~IMM_done) ? 1 : 0;
-          end
+             // IMM_done <= (IMM_mode && ~IMM_done) ? 1 : 0;
+             if (IMM_mode && ~IMM_done)
+               begin
+                  MAB_IMM <= MAB_in;
+                  IMM_done <= 1;
+               end
+             else if (IMM_mode && (MAB_IMM != MAB_in))
+               IMM_done <= 0;
+          end // if (MAB_in == reg_PC_out)
         else
           INSTR_REG_sync <= INSTR_LAST;
      end // always @ (negedge clk)
-
-   
-   // // Latch outputs
-   // always @ (negedge clk)
-   //   begin
-   //      // Latch MDB
-   //      MDB_last <= MDB_out;
-
-   //      // Latch the last instruction
-   //      INSTR_REG <= (PASSING_INSTR) ? INSTR_REG : INSTR_REG;
-
-   //      // Do the reg_SA latches
-   //      reg_SA <= (PASSING_INSTR) ? reg_SA_prelatch : reg_SA;
-
-   //      // If it's indirect autoincrement mode, that means we need to
-   //      // turn RW on at least to increment the register afterwards
-   //      if (&AdAs_async[1:0] && ~reg_DA_holds_SA)
-   //        begin
-   //           reg_DA_last <= reg_DA_prelatch;
-   //           reg_DA <= reg_SA_prelatch;
-   //           reg_DA_holds_SA <= 1;
-   //           RW <= 1;
-   //        end
-   //      else if (&AdAs[1:0])
-   //        begin
-   //           RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
-   //           reg_DA <= reg_DA_last;
-   //           reg_DA_holds_SA <= 0;
-   //        end
-   //      else
-   //        begin
-   //           reg_DA <= (PASSING_INSTR) ? reg_DA_prelatch : reg_DA;
-   //           RW <= ~MW && (pre_RW && PASSING_INSTR && ~AdAs[2]) ? 1 : 0;
-   //        end  
-
-   //      // Latch Ad/As
-   //      if (!FORMAT)
-   //        AdAs <= AdAs;
-   //      else
-   //        AdAs <= (PASSING_INSTR && (FORMAT == FMT_I))  ? {INSTR_REG[7],INSTR_REG[5:4]} :
-   //                (PASSING_INSTR && (FORMAT == FMT_II)) ? {1'bx,INSTR_REG[5:4]}           : AdAs;
-        
-        
-   //      // Latch BW
-   //      BW <= (FORMAT <= FMT_II) ? INSTR_REG[6] : BW;
-        
-   //      // And now to determine FS code... First, what format is this in?
-   //      if (PASSING_INSTR)
-   //        case (FORMAT)
-   //          // For FMT I, check these bits
-   //          FMT_I:
-   //            case (INSTR_REG[15:12])
-   //              `OP_MOV:     {pre_RW,FS} <= {1'b1,`FS_MOV};
-   //              `OP_ADD:     {pre_RW,FS} <= {1'b1,`FS_ADD};
-   //              `OP_ADDC:    {pre_RW,FS} <= {1'b1,`FS_ADDC};
-   //              `OP_SUBC:    {pre_RW,FS} <= {1'b1,`FS_SUBC};
-   //              `OP_SUB:     {pre_RW,FS} <= {1'b1,`FS_SUB};
-   //              `OP_CMP:     {pre_RW,FS} <= {1'b0,`FS_CMP};
-   //              `OP_DADD:    {pre_RW,FS} <= {1'b1,`FS_DADD};
-   //              `OP_BIT:     {pre_RW,FS} <= {1'b0,`FS_BIT};
-   //              `OP_BIC:     {pre_RW,FS} <= {1'b1,`FS_BIC};
-   //              `OP_BIS:     {pre_RW,FS} <= {1'b1,`FS_BIS};
-   //              `OP_XOR:     {pre_RW,FS} <= {1'b1,`FS_XOR}; 
-   //              `OP_AND:     {pre_RW,FS} <= {1'b1,`FS_AND};
-   //              default:     {pre_RW,FS} <= {1'b0,FS}; // If it is not a valid op, just clear out
-   //            endcase // case (INSTR_REG[15:12])
-
-   //          // For FMT II, check these bits
-   //          FMT_II:
-   //            case (INSTR_REG[15:7])
-   //              `OP_RRC:     {pre_RW,FS} <= {1'b1,`FS_RRC};//1
-   //              `OP_SWPB:    {pre_RW,FS} <= {1'b1,`FS_SWPB};//0
-   //              `OP_RRA:     {pre_RW,FS} <= {1'b1,`FS_RRA};//1
-   //              `OP_SXT:     {pre_RW,FS} <= {1'b1,`FS_SXT};//1
-   //              `OP_PUSH:    {pre_RW,FS} <= {1'b1,`FS_PUSH};//0
-   //              `OP_CALL:    {pre_RW,FS} <= {1'b1,`FS_CALL};//0
-   //              `OP_RETI:    {pre_RW,FS} <= {1'b1,`FS_RETI};//1
-   //              default:     {pre_RW,FS} <= {1'b0,FS};
-   //            endcase // case (INSTRUCTION[15:7])
-
-   //          // For jumps, just pass the opcode + C through the FS port
-   //          FMT_J:           {pre_RW,FS} <= {4'b0,INSTR_REG[12:10]};
-   //          default:         {pre_RW,FS} <= {1'b0,FS};
-   //        endcase // case (FORMAT)
-   //      else // if NOT passing instruction
-   //        {pre_RW,FS} <= {pre_RW,FS}; // Latch pre_RW and FS
-
-   //   end // always @ (negedge clk)
 
 endmodule
