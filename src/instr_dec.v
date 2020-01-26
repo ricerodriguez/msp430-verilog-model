@@ -89,8 +89,12 @@ module instr_dec
    wire [15:0] MAB_IMM;
    wire        IMM_done_test;
    wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
+   wire        FAIL_COND2; // Just kidding there's another one
+   
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
+   assign FAIL_COND2 = (AdAs[1:0] == 2'b01);
+   
 
    assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
       
@@ -99,7 +103,7 @@ module instr_dec
 
    assign IMM_mode = (&AdAs[1:0] && !reg_SA) ? 1 : 0;
 
-   assign MAB_IMM = (IMM_mode && ~IMM_done) ? MAB_last : MAB_IMM_last;
+   assign MAB_IMM = ((FAIL_COND1 || FAIL_COND2) && ~IMM_done) ? MAB_last : MAB_IMM_last;
 
    // Extract SA from instruction
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
@@ -208,12 +212,12 @@ module instr_dec
           begin
              // If the last instruction was immediate mode, it's not an instruction
              // INSTR_REG_sync <= (FAIL_COND1 && IMM_done) ? INSTR_REG_sync : MDB_out;
-             if (FAIL_COND1 && ~IMM_done)
+             if ((FAIL_COND1 || FAIL_COND2) && ~IMM_done)
                INSTR_REG_sync <= INSTR_REG_sync;
              else
                INSTR_REG_sync <= MDB_out;
              
-             if (IMM_mode)
+             if (FAIL_COND1 || FAIL_COND2)
                IMM_done <= (MAB_IMM == MAB_last);
           end // if (MAB_in == reg_PC_out)
         else

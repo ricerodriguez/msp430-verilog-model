@@ -40,7 +40,7 @@ module calc
                FUNC_en <= 1;
                if (MC)
                  begin
-                    state <= state_WAIT;
+                    state <= state_CALC;
                     Sout_last <= Sout;
                     Dout_last <= Dout;
                     MDB_last  <= MDB_out;
