@@ -91,10 +91,8 @@ module instr_dec
    wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
    wire        FAIL_COND2; // Just kidding there's another one
    
-   
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[1:0] == 2'b01);
-   
 
    assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
       
@@ -153,8 +151,9 @@ module instr_dec
    //              2'h1;
    assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
-                (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
-                (AdAs[1] && ~MD_done) ? 2'h0 : 2'h1;
+                (FAIL_COND1 || FAIL_COND2) && IMM_done ? 2'h0 :
+                // (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
+                (AdAs[1] && ~MD_done)            ? 2'h0 : 2'h1;
    
                 
 
@@ -197,9 +196,6 @@ module instr_dec
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : 0;
 
    assign RW = pre_RW && (~AdAs[2]) && ~((~CALC_done && MC) && (FAIL_COND1 || FAIL_COND2)) ? 1 : 0;
-
-   assign IMM_done_test = (MAB_IMM != MAB_last) && AdAs[1] ? 1 : 0;
-   
 
    always @ (negedge clk)
      begin
