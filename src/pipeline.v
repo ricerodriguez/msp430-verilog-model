@@ -107,6 +107,7 @@ module pipeline #(parameter SIZE=16)
       .MAB_in                           (MAB_in[15:0]),
       .MDB_out                          (MDB_out[15:0]),
       .MD_done                          (MD_done),
+      .Sout                             (Sout[15:0]),
       .clk                              (clk),
       .reg_PC_out                       (reg_PC_out[15:0]));
 

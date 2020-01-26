@@ -25,6 +25,7 @@ module instr_dec
    input [15:0] reg_PC_out,
    input        CALC_done,
    input        MD_done,
+   input [15:0] Sout,
    output [2:0] MAB_sel,
    output       MDB_sel,
    // output reg [1:0] FORMAT,
@@ -54,18 +55,15 @@ module instr_dec
 
 
    // Registers
-   // reg [15:0]       INSTR_REG;
    reg [15:0]       INSTR_REG_sync;
    reg [15:0]       INSTR_LAST;
    reg [15:0]       reg_PC_last;
    
-   // reg              pre_RW;
    reg [3:0]        reg_DA_last;
-   reg              reg_DA_holds_SA;
    reg [1:0]        MD_last;
    reg              IMM_done; // Immediate mode instruction is already in IR
    reg [15:0]       MAB_last;
-   reg [15:0]       MAB_IMM;
+   reg [15:0]       MAB_IMM_last;
    
    
    
@@ -73,17 +71,13 @@ module instr_dec
    initial
      begin
         reg_PC_last <= reg_PC_out;
-        // INSTR_REG <= 0;
         INSTR_REG_sync <= 0;
         INSTR_LAST <= 0;
-        // pre_RW <= 0;
         reg_DA_last <= 0;
-        // RW <= 0;
-        reg_DA_holds_SA <= 0;
         MD_last <= 0;
         IMM_done <= 0;
         MAB_last <= 0;
-        MAB_IMM <= 0;
+        MAB_IMM_last <= 0;
      end // initial begin
    
 
@@ -92,17 +86,20 @@ module instr_dec
    wire        IMM_mode;
    wire        pre_RW;
    wire [15:0] INSTR_REG;
+   wire [15:0] MAB_IMM;
+   wire        IMM_done_test;
+   wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
    
-   // wire        IMM_done_async;
+   assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
 
    assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
-   
+      
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
 
    assign IMM_mode = (&AdAs[1:0] && !reg_SA) ? 1 : 0;
 
-   // assign IMM_done_async = (IMM_mode) ? ~IMM_done : 0;
+   assign MAB_IMM = (IMM_mode && ~IMM_done) ? MAB_last : MAB_IMM_last;
 
    // Extract SA from instruction
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
@@ -128,7 +125,7 @@ module instr_dec
 
    assign MD = (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
-               (AdAs[1:0] == 2'b11) && !MPC       ? 2'h2 : 2'h0;
+               (AdAs[1:0] == 2'b11) && !MD_done       ? 2'h2 : 2'h0;
 
 
    assign MAB_sel = (!AdAs)              ? MAB_PC   :
@@ -150,10 +147,10 @@ module instr_dec
    //              !AdAs || (AdAs[1:0] == 2'b01) ? 2'h1 : // Register/Indexed
    //              AdAs[1] && ~MD_done           ? 2'h0 : // Indirect reg/auto
    //              2'h1;
-   assign MPC = (FORMAT == FMT_J)               ? 2'h3 :
+   assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
-                (AdAs[2] || AdAs[1:0] <= 2'b01) ? 2'h1 :
-                (AdAs[1])                       ? 2'h0 : 2'h1;
+                (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
+                (AdAs[1] && ~MD_done) ? 2'h0 : 2'h1;
    
                 
 
@@ -195,29 +192,36 @@ module instr_dec
    
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : 0;
 
-   assign RW = pre_RW && (~AdAs[2]) ? 1 : 0;  
+   assign RW = pre_RW && (~AdAs[2]) ? 1 : 0;
+
+   assign IMM_done_test = (MAB_IMM != MAB_last) && AdAs[1] ? 1 : 0;
+   
 
    always @ (negedge clk)
      begin
         INSTR_LAST <= INSTR_REG;
         reg_DA_last <= reg_DA;
         MAB_last <= MAB_in;
+        MAB_IMM_last <= MAB_IMM;
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
              // If the last instruction was immediate mode, it's not an instruction
-             INSTR_REG_sync <= (IMM_mode && IMM_done) ? INSTR_REG_sync : MDB_out;
-             // IMM_done <= (IMM_mode && ~IMM_done) ? 1 : 0;
-             if (IMM_mode && ~IMM_done)
-               begin
-                  MAB_IMM <= MAB_in;
-                  IMM_done <= 1;
-               end
-             else if (IMM_mode && (MAB_IMM != MAB_in))
-               IMM_done <= 0;
+             // INSTR_REG_sync <= (FAIL_COND1 && IMM_done) ? INSTR_REG_sync : MDB_out;
+             if (FAIL_COND1 && ~IMM_done)
+               INSTR_REG_sync <= INSTR_REG_sync;
+             else
+               INSTR_REG_sync <= MDB_out;
+             
+             if (IMM_mode)
+               IMM_done <= (MAB_IMM == MAB_last);
           end // if (MAB_in == reg_PC_out)
         else
-          INSTR_REG_sync <= INSTR_LAST;
+          begin
+             INSTR_REG_sync <= INSTR_LAST;
+             if (AdAs[1])
+               IMM_done <= 1;
+          end  
      end // always @ (negedge clk)
 
 endmodule
