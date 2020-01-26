@@ -196,7 +196,7 @@ module instr_dec
    
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : 0;
 
-   assign RW = pre_RW && (~AdAs[2]) ? 1 : 0;
+   assign RW = pre_RW && (~AdAs[2]) && ~((~CALC_done && MC) && (FAIL_COND1 || FAIL_COND2)) ? 1 : 0;
 
    assign IMM_done_test = (MAB_IMM != MAB_last) && AdAs[1] ? 1 : 0;
    
