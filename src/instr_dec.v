@@ -5,10 +5,8 @@
  determines how many instructions to expect, then counts until that
  number of instructions has passed.
  TODO:
- - RE-DO COMPLETELY, MAKE MUX SELS ASYNC
- - MOVE COUNTER TO CALC
- x IGNORE MDB IF MAB != PC
- - RW SHOULD COME FROM CALC? OR FUNC UNIT?
+   - FIX MPC?? Right now in indexed mode, after it goes back 
+     to PC it uses the old PC and messes it up
  Notes:
  - IN PROGRESS. Will not work right now as it is being rewritten from
  the ground up.
@@ -28,7 +26,6 @@ module instr_dec
    input [15:0] Sout,
    output [2:0] MAB_sel,
    output       MDB_sel,
-   // output reg [1:0] FORMAT,
    output [5:0] FS,
    output       BW,
    output       RW,
@@ -92,7 +89,7 @@ module instr_dec
    wire        FAIL_COND2; // Just kidding there's another one
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
-   assign FAIL_COND2 = (AdAs[1:0] == 2'b01);
+   assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
 
    assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
       
@@ -150,6 +147,8 @@ module instr_dec
    //              AdAs[1] && ~MD_done           ? 2'h0 : // Indirect reg/auto
    //              2'h1;
    assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
+                // Indexed
+                (FAIL_COND2 && CALC_done)        ? 2'h1 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
                 (FAIL_COND1 || FAIL_COND2) && IMM_done ? 2'h0 :
                 // (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
