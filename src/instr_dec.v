@@ -89,8 +89,7 @@ module instr_dec
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
-
-
+   assign CONST_GEN  = ((reg_SA == 4'h3) || (reg_SA == 4'h2)) && (AdAs>0) ? 1 : 0;
       
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
@@ -110,7 +109,7 @@ module instr_dec
    // MUX SELECT BITS
    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    // MUX A determines what goes into the A side of the function unit
-   assign MA = !AdAs[1:0]                       ? 2'h0 : // Register mode
+   assign MA = ((!AdAs[1:0]) || CONST_GEN)      ? 2'h0 : // Register mode
                (AdAs[1:0] == 2'b10)             ? 2'h1 : // Indirect reg mode
                (AdAs == 3'b001) || (&AdAs[1:0]) ? 2'h2 : // Indexed src or Indirect autoinc
                (AdAs == 3'b101)                 ? 2'h3 : // Indexed src and dst
@@ -119,7 +118,7 @@ module instr_dec
    assign MB = ~AdAs[2]   ? 1'b0 :
                AdAs[2]    ? 1'b1 : 1'b0;
 
-   assign MC = (AdAs[2] || (AdAs[1:0] == 2'b01)) ? 1 : 0;
+   assign MC = (AdAs[2] || (AdAs[1:0] == 2'b01)) && ~CONST_GEN ? 1 : 0;
 
    assign MD = (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
@@ -144,16 +143,15 @@ module instr_dec
    assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
                 (FAIL_COND2 && CALC_done)        ? 2'h1 :
-                // If we still have a fail cond and we're done 
-                // (FAIL_COND1 || FAIL_COND2) && FAIL_COND_done ? 2'h0 :
+                // indexed and we haven't finished calculating but
+                // we already finished looking at the instruction
                 (FAIL_COND2) && FAIL_COND_done ? 2'h0 :
-                (FAIL_COND1) && ~FAIL_COND_done ? 2'h0 :
-                // (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
-                (AdAs[1] && ~MD_done)            ? 2'h0 : 2'h1;
-   
-                
+                // Indirect auto and we aren't done looking at the
+                // instruction
+                (FAIL_COND1) && ~FAIL_COND_done ? 2'h0 : 2'h1;
 
    assign MSP = 0; // For now
+   assign MSR = 0;
 
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : BW;
 

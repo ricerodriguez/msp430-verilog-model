@@ -1,14 +1,13 @@
 module pipeline #(parameter SIZE=16)
   (/*AUTOARG*/
    // Inputs
-   rst, reg_SR_in, clk, RST_VEC
+   rst, clk, RST_VEC
    );
 
    /*AUTOINPUT*/
    // Beginning of automatic inputs (from unused autoinst inputs)
    input [15:0]         RST_VEC;                // To u04_reg_file of reg_file.v
    input                clk;                    // To u00_mem_space of mem_space.v, ...
-   input [15:0]         reg_SR_in;              // To u04_reg_file of reg_file.v
    input                rst;                    // To u04_reg_file of reg_file.v
    // End of automatics
    /*AUTOWIRE*/
@@ -47,6 +46,7 @@ module pipeline #(parameter SIZE=16)
    wire [3:0]           reg_SA;                 // From u03_instr_dec of instr_dec.v
    wire [15:0]          reg_SP_in;              // From u07 of mux_sp.v
    wire [15:0]          reg_SP_out;             // From u04_reg_file of reg_file.v
+   wire [15:0]          reg_SR_in;              // From u06 of mux_sr.v
    wire [15:0]          reg_SR_out;             // From u04_reg_file of reg_file.v
    // End of automatics
 
@@ -142,8 +142,14 @@ module pipeline #(parameter SIZE=16)
       .MPC                              (MPC[2:0]),
       .reg_PC_out                       (reg_PC_out[15:0]));
 
-   // mux_sr u06
-   //   (/*AUTOINST*/);
+   mux_sr u06
+     (/*AUTOINST*/
+      // Outputs
+      .reg_SR_in                        (reg_SR_in[15:0]),
+      // Inputs
+      .CVNZ_func                        (CVNZ_func[3:0]),
+      .MSR                              (MSR),
+      .reg_SR_out                       (reg_SR_out[15:0]));
 
    mux_sp u07
      (/*AUTOINST*/

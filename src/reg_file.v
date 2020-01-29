@@ -100,7 +100,7 @@ module reg_file
        {2'b01,4'd3}: reg_CG2_out <= 16'h0001;
        {2'b10,4'd3}: reg_CG2_out <= 16'h0002;
        {2'b11,4'd3}: reg_CG2_out <= 16'hFFFF;
-       default: {reg_CG1_out, reg_CG2_out} <= 32'bx;       
+       default: {reg_CG1_out, reg_CG2_out} <= {regs[3],regs[2]};       
      endcase  
    
 endmodule
