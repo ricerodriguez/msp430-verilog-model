@@ -52,13 +52,13 @@ module instr_dec
 
 
    // Registers
-   reg [15:0]       INSTR_REG_sync;
+   reg [15:0]       INSTR_REG;
    reg [15:0]       INSTR_LAST;
    reg [15:0]       reg_PC_last;
    
    reg [3:0]        reg_DA_last;
    reg [1:0]        MD_last;
-   reg              IMM_done; // Immediate mode instruction is already in IR
+   reg              FAIL_COND_done; // Immediate mode instruction is already in IR
    reg [15:0]       MAB_last;
    reg [15:0]       MAB_IMM_last;
    
@@ -68,11 +68,11 @@ module instr_dec
    initial
      begin
         reg_PC_last <= reg_PC_out;
-        INSTR_REG_sync <= 0;
+        INSTR_REG <= 0;
         INSTR_LAST <= 0;
         reg_DA_last <= 0;
         MD_last <= 0;
-        IMM_done <= 0;
+        FAIL_COND_done <= 0;
         MAB_last <= 0;
         MAB_IMM_last <= 0;
      end // initial begin
@@ -82,29 +82,28 @@ module instr_dec
    wire [1:0]  FORMAT;
    wire        IMM_mode;
    wire        pre_RW;
-   wire [15:0] INSTR_REG;
+
    wire [15:0] MAB_IMM;
-   wire        IMM_done_test;
    wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
    wire        FAIL_COND2; // Just kidding there's another one
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
 
-   assign INSTR_REG = (IMM_mode && IMM_done) ? INSTR_LAST : INSTR_REG_sync;
+
       
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
 
    assign IMM_mode = (&AdAs[1:0] && !reg_SA) ? 1 : 0;
 
-   assign MAB_IMM = ((FAIL_COND1 || FAIL_COND2) && ~IMM_done) ? MAB_last : MAB_IMM_last;
+   assign MAB_IMM = ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done) ? MAB_last : MAB_IMM_last;
 
    // Extract SA from instruction
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
                    (FORMAT == FMT_II) ? INSTR_REG[3:0]  : 4'bx;
 
-   assign reg_DA = (FORMAT <= FMT_II) && (IMM_mode && ~IMM_done)  ? reg_SA         :
+   assign reg_DA = (FORMAT <= FMT_II) && (IMM_mode && ~FAIL_COND_done)  ? reg_SA         :
                    (FORMAT <= FMT_II)                             ? INSTR_REG[3:0] : 4'bx;
 
    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,15 +141,13 @@ module instr_dec
 
    // Does this need to be two bits? I can't remember why it has a shifter
    // ^^ Yes!! It's for branching. Deal with it later
-   // assign MPC = 
-   //              !AdAs || (AdAs[1:0] == 2'b01) ? 2'h1 : // Register/Indexed
-   //              AdAs[1] && ~MD_done           ? 2'h0 : // Indirect reg/auto
-   //              2'h1;
    assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
-                // Indexed
-                (FAIL_COND2 && CALC_done)        ? 2'h1 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
-                (FAIL_COND1 || FAIL_COND2) && IMM_done ? 2'h0 :
+                (FAIL_COND2 && CALC_done)        ? 2'h1 :
+                // If we still have a fail cond and we're done 
+                // (FAIL_COND1 || FAIL_COND2) && FAIL_COND_done ? 2'h0 :
+                (FAIL_COND2) && FAIL_COND_done ? 2'h0 :
+                (FAIL_COND1) && ~FAIL_COND_done ? 2'h0 :
                 // (AdAs[2] || AdAs[1:0] <= 2'b01)  ? 2'h1 :
                 (AdAs[1] && ~MD_done)            ? 2'h0 : 2'h1;
    
@@ -205,21 +202,25 @@ module instr_dec
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
-             // If the last instruction was immediate mode, it's not an instruction
-             // INSTR_REG_sync <= (FAIL_COND1 && IMM_done) ? INSTR_REG_sync : MDB_out;
-             if ((FAIL_COND1 || FAIL_COND2) && ~IMM_done)
-               INSTR_REG_sync <= INSTR_REG_sync;
+             // If one of the fail conditions is true, and we haven't moved on
+             // from the instruction yet, latch it
+             if ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done)
+               INSTR_REG <= INSTR_REG;
              else
-               INSTR_REG_sync <= MDB_out;
-             
+               // Otherwise put the MDB into the IR
+               INSTR_REG <= MDB_out;
+
+             // If one of the fail conditions is true, eval FAIL_COND_done
              if (FAIL_COND1 || FAIL_COND2)
-               IMM_done <= (MAB_IMM == MAB_last);
+               // If the MAB from the instruction was the last address
+               // that was used, then we're done looking at the instruction
+               FAIL_COND_done <= (MAB_IMM == MAB_last);
           end // if (MAB_in == reg_PC_out)
         else
           begin
-             INSTR_REG_sync <= INSTR_LAST;
+             INSTR_REG <= INSTR_LAST;
              if (AdAs[1])
-               IMM_done <= 1;
+               FAIL_COND_done <= 1;
           end  
      end // always @ (negedge clk)
 
