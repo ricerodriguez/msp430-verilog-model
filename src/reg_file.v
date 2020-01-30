@@ -56,7 +56,8 @@ module reg_file
      end
 
    // Addressable registers
-   assign {Sout,Dout} = {regs[reg_SA],regs[reg_DA]};
+   assign {Sout,Dout} = (reg_SA != 3) ? {regs[reg_SA],regs[reg_DA]} :
+                        {reg_CG2_out,regs[reg_DA]};
 
    always @ (posedge clk)
      begin
@@ -84,7 +85,7 @@ module reg_file
         reg_SA_last <= reg_SA;
         reg_DA_last <= reg_DA;
         reg_Din_last <= reg_Din;
-        regs[3] <= reg_CG2_out;
+        // regs[3] <= reg_CG2_out;
      end // always @ (posedge clk)
    
    // SR special cases

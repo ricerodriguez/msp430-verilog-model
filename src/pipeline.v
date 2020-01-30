@@ -31,7 +31,7 @@ module pipeline #(parameter SIZE=16)
    wire [1:0]           MD;                     // From u03_instr_dec of instr_dec.v
    wire [15:0]          MDB_in;                 // From u02 of mux_mdb.v
    wire [15:0]          MDB_out;                // From u00_mem_space of mem_space.v
-   wire                 MDB_sel;                // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MDB_sel;                // From u03_instr_dec of instr_dec.v
    wire                 MD_done;                // From u10_mux_din of mux_din.v
    wire [2:0]           MPC;                    // From u03_instr_dec of instr_dec.v
    wire [1:0]           MSP;                    // From u03_instr_dec of instr_dec.v
@@ -81,7 +81,8 @@ module pipeline #(parameter SIZE=16)
       // Inputs
       .F_out                            (F_out[15:0]),
       .MDB_out                          (MDB_out[15:0]),
-      .MDB_sel                          (MDB_sel));   
+      .MDB_sel                          (MDB_sel[1:0]),
+      .Sout                             (Sout[15:0]));   
 
    instr_dec u03_instr_dec
      (/*AUTOINST*/
@@ -94,7 +95,7 @@ module pipeline #(parameter SIZE=16)
       .MB                               (MB[1:0]),
       .MC                               (MC),
       .MD                               (MD[1:0]),
-      .MDB_sel                          (MDB_sel),
+      .MDB_sel                          (MDB_sel[1:0]),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
       .MSR                              (MSR),

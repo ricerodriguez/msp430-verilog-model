@@ -25,7 +25,7 @@ module instr_dec
    input        MD_done,
    input [15:0] Sout,
    output [2:0] MAB_sel,
-   output       MDB_sel,
+   output [1:0] MDB_sel,
    output [5:0] FS,
    output       BW,
    output       RW,
@@ -131,8 +131,10 @@ module instr_dec
                     MC                   ? MAB_CALC : MAB_PC;
 
    assign MW = AdAs[2] ? 1 : 0;
-   assign MDB_sel = MW ? 1 : 0;
-
+   // assign MDB_sel = MW ? 1 : 0;
+   assign MDB_sel = (!AdAs[2]) ? 2'h0 :
+                    (AdAs == 3'b100) ? 2'h2 : 2'h1;
+   
    // How do we get it to pause for a cycle to do the increment on
    // indirect register/autoincrement modes? The instruction length
    // is just 1, so it wants to pass the next instruction right away.
