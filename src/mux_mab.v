@@ -11,12 +11,12 @@ module mux_mab
 
    assign MAB_in =
                   (MAB_sel == 3'h0)               ? reg_PC_out :
-                  // MDB_out for RST_VEC and RETI. Implement later.
                   (MAB_sel == 3'h1)               ? Sout       :
                   (MAB_sel == 3'h2) && CALC_done  ? CALC_out   :
                   (MAB_sel == 3'h2) && ~CALC_done ? reg_PC_out :
                   // SP for RETI...?
                   (MAB_sel == 3'h3)               ? reg_SP_out : 
+                  // MDB_out for RST_VEC and RETI. Implement later.
                   (MAB_sel == 3'h4)               ? MDB_out    : reg_PC_out;
 
 endmodule

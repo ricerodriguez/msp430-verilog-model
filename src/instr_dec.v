@@ -126,11 +126,12 @@ module instr_dec
 
 
    assign MAB_sel = (!AdAs)              ? MAB_PC   :
-                    // (AdAs[1:0] == 2'b10) ? MAB_Sout :
+                    // (AdAs[1:0] == 2'b10) ? MAB_Sout : // <-- for some reason
+                                                         // this line breaks everything
                     // Indirect register/autoincrement mode
                     MC                   ? MAB_CALC : MAB_PC;
 
-   assign MW = AdAs[2] ? 1 : 0;
+   assign MW = (AdAs[2] && CALC_done) ? 1 : 0;
    // assign MDB_sel = MW ? 1 : 0;
    assign MDB_sel = (!AdAs[2]) ? 2'h0 :
                     (AdAs == 3'b100) ? 2'h2 : 2'h1;
