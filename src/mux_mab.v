@@ -1,6 +1,6 @@
 module mux_mab
   (input [15:0] reg_PC_out, reg_SP_out, MDB_out, CALC_out, Sout,
-   input [2:0]   MAB_sel, // Maybe change this to be based of AdAs?
+   input [2:0]   MAB_sel,
    input         CALC_done,
    output [15:0] MAB_in);
 

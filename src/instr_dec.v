@@ -5,15 +5,8 @@
  determines how many instructions to expect, then counts until that
  number of instructions has passed.
  TODO:
-   - FIX MPC?? Right now in indexed mode, after it goes back 
-     to PC it uses the old PC and messes it up
- Notes:
- - IN PROGRESS. Will not work right now as it is being rewritten from
- the ground up.
- - Right now it sets PC to hold when instruction is not an 
- instruction, so that it way it doesn't pass over the 
- instruction before the register file receives it on the Din. 
- When is it supposed to tell PC to continue? How?
+   - FIX MAB_sel, for some reason it breaks when it uses AdAs==2'b10
+
  */
 `include "msp430_ops.vh"
 module instr_dec
@@ -127,7 +120,8 @@ module instr_dec
 
    assign MAB_sel = (!AdAs)              ? MAB_PC   :
                     // (AdAs[1:0] == 2'b10) ? MAB_Sout : // <-- for some reason
-                                                         // this line breaks everything
+                    //                                   //     this line breaks
+                    //                                   //     everything
                     // Indirect register/autoincrement mode
                     MC                   ? MAB_CALC : MAB_PC;
 
