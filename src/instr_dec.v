@@ -54,6 +54,8 @@ module instr_dec
    reg              FAIL_COND_done; // Immediate mode instruction is already in IR
    reg [15:0]       MAB_last;
    reg [15:0]       MAB_IMM_last;
+   reg              FAIL_COND_done_last;
+   
    
    
    
@@ -69,6 +71,7 @@ module instr_dec
         MAB_last <= 0;
         MAB_IMM_last <= 0;
         MAB_sel <= 0;
+        FAIL_COND_done_last <= 0;
      end // initial begin
    
 
@@ -76,6 +79,7 @@ module instr_dec
    wire [1:0]  FORMAT;
    wire        IMM_mode;
    wire        pre_RW;
+
 
    wire [15:0] MAB_IMM;
    wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
@@ -207,6 +211,7 @@ module instr_dec
         reg_DA_last <= reg_DA;
         MAB_last <= MAB_in;
         MAB_IMM_last <= MAB_IMM;
+        FAIL_COND_done_last <= FAIL_COND_done;
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
@@ -214,9 +219,12 @@ module instr_dec
              // from the instruction yet, latch it
              if ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done)
                INSTR_REG <= INSTR_REG;
+             else if (AdAs[2] && ~FAIL_COND_done_last)
+               INSTR_REG <= INSTR_REG;
              else
-               // Otherwise put the MDB into the IR
                INSTR_REG <= MDB_out;
+               // Otherwise put the MDB into the IR
+               // INSTR_REG <= (AdAs[2] && ~FAIL_COND_done_last) ? INSTR_REG : MDB_out;
 
              // If one of the fail conditions is true, eval FAIL_COND_done
              if (FAIL_COND1 || FAIL_COND2)
@@ -226,7 +234,7 @@ module instr_dec
           end // if (MAB_in == reg_PC_out)
         else
           begin
-             INSTR_REG <= INSTR_LAST;
+             INSTR_REG <= INSTR_REG;
              if (AdAs[1])
                FAIL_COND_done <= 1;
           end  
