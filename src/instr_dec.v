@@ -11,26 +11,26 @@
 `include "msp430_ops.vh"
 module instr_dec
   (input        clk,
-   input [15:0] MDB_out,
-   input [15:0] MAB_in,
-   input [15:0] reg_PC_out,
-   input        CALC_done,
-   input        MD_done,
-   input [15:0] Sout,
-   output [2:0] MAB_sel,
-   output [1:0] MDB_sel,
-   output [5:0] FS,
-   output       BW,
-   output       RW,
-   output       MW,
-   output [1:0] MA, MB,
-   output [3:0] reg_SA, reg_DA,
-   output [2:0] AdAs, 
-   output [1:0] MD,
-   output       MC,
-   output [2:0] MPC, 
-   output [1:0] MSP, 
-   output       MSR);
+   input [15:0]     MDB_out,
+   input [15:0]     MAB_in,
+   input [15:0]     reg_PC_out,
+   input            CALC_done,
+   input            MD_done,
+   input [15:0]     Sout,
+   output reg [2:0] MAB_sel,
+   output [1:0]     MDB_sel,
+   output [5:0]     FS,
+   output           BW,
+   output           RW,
+   output           MW,
+   output [1:0]     MA, MB,
+   output [3:0]     reg_SA, reg_DA,
+   output [2:0]     AdAs, 
+   output [1:0]     MD,
+   output           MC,
+   output [2:0]     MPC, 
+   output [1:0]     MSP, 
+   output           MSR);
    // MPC - Select bit for MUX PC
    // MSP - Select bit for MUX SP
    // MSR - Select bit for MUX SR
@@ -68,6 +68,7 @@ module instr_dec
         FAIL_COND_done <= 0;
         MAB_last <= 0;
         MAB_IMM_last <= 0;
+        MAB_sel <= 0;
      end // initial begin
    
 
@@ -118,12 +119,24 @@ module instr_dec
                (AdAs[1:0] == 2'b11) && !MD_done       ? 2'h2 : 2'h0;
 
 
-   assign MAB_sel = (!AdAs)              ? MAB_PC   :
-                    // (AdAs[1:0] == 2'b10) ? MAB_Sout : // <-- for some reason
-                    //                                   //     this line breaks
-                    //                                   //     everything
-                    // Indirect register/autoincrement mode
-                    MC                   ? MAB_CALC : MAB_PC;
+   // assign MAB_sel = (!AdAs)              ? MAB_PC   :
+   //                 // (AdAs[1:0] == 2'b10) ? MAB_Sout : // <-- for some reason
+   //                  //                                   //     this line breaks
+   //                  //                                   //     everything
+   //                  // Indirect register/autoincrement mode
+   //                  MC                   ? MAB_CALC : MAB_PC;
+
+   always @ (*)
+     begin
+        if (!AdAs)
+          MAB_sel <= MAB_PC;
+        else if ((AdAs[1:0] == 2'b10) && ~CONST_GEN)
+          MAB_sel <= MAB_Sout;
+        else if (MC)
+          MAB_sel <= MAB_CALC;
+        else
+          MAB_sel <= MAB_PC;
+     end  
 
    assign MW = (AdAs[2] && CALC_done) ? 1 : 0;
    // assign MDB_sel = MW ? 1 : 0;
