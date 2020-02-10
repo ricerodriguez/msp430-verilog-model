@@ -10,11 +10,12 @@
  */
 `include "msp430_ops.vh"
 module instr_dec
-  (input        clk,
+  (input            clk,
    input [15:0]     MDB_out,
    input [15:0]     MAB_in,
    input [15:0]     reg_PC_out,
    input            CALC_done,
+   input            MAB_done,
    input            MD_done,
    input [15:0]     Sout,
    output reg [2:0] MAB_sel,
@@ -54,10 +55,6 @@ module instr_dec
    reg              FAIL_COND_done; // Immediate mode instruction is already in IR
    reg [15:0]       MAB_last;
    reg [15:0]       MAB_IMM_last;
-   reg              FAIL_COND_done_last;
-   
-   
-   
    
    // Initialize registers
    initial
@@ -71,28 +68,33 @@ module instr_dec
         MAB_last <= 0;
         MAB_IMM_last <= 0;
         MAB_sel <= 0;
-        FAIL_COND_done_last <= 0;
      end // initial begin
    
 
    // Wires
    wire [1:0]  FORMAT;
-   wire        IMM_mode;
    wire        pre_RW;
 
 
    wire [15:0] MAB_IMM;
-   wire        FAIL_COND1; // The one exception to the rule that if MAB = PC then it's an instruction
-   wire        FAIL_COND2; // Just kidding there's another one
+   // Two conditions for when there is a word in ROM not an instruction
+   wire        FAIL_COND1; // Immediate Mode
+   wire        FAIL_COND2; // Indexed mode
+   // Two conditions for when to have DA = SA before DA = DA
+   wire        HOLD_COND1; // Immediate mode
+   wire        HOLD_COND2; // Indirect register autoincrement mode
+      
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
+
+   assign HOLD_COND1 = (FAIL_COND1 && ~FAIL_COND_done) ? 1 : 0;
+   assign HOLD_COND2 = (AdAs[1] && MAB_done) ? 1 : 0;
+   
    assign CONST_GEN  = ((reg_SA == 4'h3) || (reg_SA == 4'h2)) && (AdAs>0) ? 1 : 0;
       
    assign AdAs = (FORMAT == FMT_I)  ? {INSTR_REG[7],INSTR_REG[5:4]} :
                  (FORMAT == FMT_II) ? {1'bx,INSTR_REG[5:4]}           : 3'bx;
-
-   assign IMM_mode = (&AdAs[1:0] && !reg_SA) ? 1 : 0;
 
    assign MAB_IMM = ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done) ? MAB_last : MAB_IMM_last;
 
@@ -100,8 +102,8 @@ module instr_dec
    assign reg_SA = (FORMAT == FMT_I)  ? INSTR_REG[11:8] : 
                    (FORMAT == FMT_II) ? INSTR_REG[3:0]  : 4'bx;
 
-   assign reg_DA = (FORMAT <= FMT_II) && (IMM_mode && ~FAIL_COND_done)  ? reg_SA         :
-                   (FORMAT <= FMT_II)                             ? INSTR_REG[3:0] : 4'bx;
+   assign reg_DA = (FORMAT <= FMT_II) && (HOLD_COND1 || HOLD_COND2)  ? reg_SA         :
+                   (FORMAT <= FMT_II)                                ? INSTR_REG[3:0] : 4'bx;
 
    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    // MUX SELECT BITS
@@ -122,19 +124,11 @@ module instr_dec
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11) && !MD_done       ? 2'h2 : 2'h0;
 
-
-   // assign MAB_sel = (!AdAs)              ? MAB_PC   :
-   //                 // (AdAs[1:0] == 2'b10) ? MAB_Sout : // <-- for some reason
-   //                  //                                   //     this line breaks
-   //                  //                                   //     everything
-   //                  // Indirect register/autoincrement mode
-   //                  MC                   ? MAB_CALC : MAB_PC;
-
    always @ (*)
      begin
         if (!AdAs)
           MAB_sel <= MAB_PC;
-        else if ((AdAs[1:0] == 2'b10) && ~CONST_GEN)
+        else if ((AdAs[1:0] == 2'b10) && ~CONST_GEN && ~MAB_done)
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
@@ -142,10 +136,9 @@ module instr_dec
           MAB_sel <= MAB_PC;
      end  
 
-   assign MW = (AdAs[2] && CALC_done) ? 1 : 0;
-   // assign MDB_sel = MW ? 1 : 0;
-   assign MDB_sel = (!AdAs[2]) ? 2'h0 :
-                    (AdAs == 3'b100) ? 2'h2 : 2'h1;
+   assign MW = (AdAs[2] && CALC_done) ? 1    : 0;
+   assign MDB_sel = (!AdAs[2])        ? 2'h0 :
+                    (AdAs == 3'b100)  ? 2'h2 : 2'h1;
    
    // How do we get it to pause for a cycle to do the increment on
    // indirect register/autoincrement modes? The instruction length
@@ -159,10 +152,10 @@ module instr_dec
                 (FAIL_COND2 && CALC_done)        ? 2'h1 :
                 // indexed and we haven't finished calculating but
                 // we already finished looking at the instruction
-                (FAIL_COND2) && FAIL_COND_done ? 2'h0 :
+                (FAIL_COND2) && FAIL_COND_done   ? 2'h0 :
                 // Indirect auto and we aren't done looking at the
                 // instruction
-                (FAIL_COND1) && ~FAIL_COND_done ? 2'h0 : 2'h1;
+                (FAIL_COND1) && ~FAIL_COND_done  ? 2'h0 : 2'h1;
 
    assign MSP = 0; // For now
    assign MSR = 0;
@@ -211,7 +204,7 @@ module instr_dec
         reg_DA_last <= reg_DA;
         MAB_last <= MAB_in;
         MAB_IMM_last <= MAB_IMM;
-        FAIL_COND_done_last <= FAIL_COND_done;
+
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
@@ -219,12 +212,9 @@ module instr_dec
              // from the instruction yet, latch it
              if ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done)
                INSTR_REG <= INSTR_REG;
-             else if (AdAs[2] && ~FAIL_COND_done_last)
-               INSTR_REG <= INSTR_REG;
              else
-               INSTR_REG <= MDB_out;
                // Otherwise put the MDB into the IR
-               // INSTR_REG <= (AdAs[2] && ~FAIL_COND_done_last) ? INSTR_REG : MDB_out;
+               INSTR_REG <= MDB_out;
 
              // If one of the fail conditions is true, eval FAIL_COND_done
              if (FAIL_COND1 || FAIL_COND2)

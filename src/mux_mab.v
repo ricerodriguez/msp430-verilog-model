@@ -1,7 +1,10 @@
 module mux_mab
-  (input [15:0] reg_PC_out, reg_SP_out, MDB_out, CALC_out, Sout,
+  (input         clk,
+   input         RW,
+   input [15:0]  reg_PC_out, reg_SP_out, MDB_out, CALC_out, Sout,
    input [2:0]   MAB_sel,
    input         CALC_done,
+   output reg    MAB_done,
    output [15:0] MAB_in);
 
    // MAB_sel TABLE:
@@ -18,5 +21,10 @@ module mux_mab
                   (MAB_sel == 3'h3)               ? reg_SP_out : 
                   // MDB_out for RST_VEC and RETI. Implement later.
                   (MAB_sel == 3'h4)               ? MDB_out    : reg_PC_out;
+
+   initial MAB_done <= 0;
+
+   always @ (posedge clk)
+     MAB_done <= (RW && (MAB_sel == 3'h1)) ? 1 : 0;
 
 endmodule
