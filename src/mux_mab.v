@@ -1,6 +1,6 @@
 module mux_mab
   (input         clk,
-   input         RW,
+   input         RW, MD, 
    input [15:0]  reg_PC_out, reg_SP_out, MDB_out, CALC_out, Sout,
    input [2:0]   MAB_sel,
    input         CALC_done,
@@ -25,6 +25,6 @@ module mux_mab
    initial MAB_done <= 0;
 
    always @ (posedge clk)
-     MAB_done <= (RW && (MAB_sel == 3'h1)) ? 1 : 0;
+     MAB_done <= (RW && (MAB_sel == 3'h1) && (MD == 2'h1)) ? 1 : 0;
 
 endmodule

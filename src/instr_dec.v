@@ -128,7 +128,7 @@ module instr_dec
      begin
         if (!AdAs)
           MAB_sel <= MAB_PC;
-        else if ((AdAs[1:0] == 2'b10) && ~CONST_GEN && ~MAB_done)
+        else if (AdAs[1] && ~CONST_GEN && ~MAB_done)
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
@@ -150,12 +150,13 @@ module instr_dec
    assign MPC = (FORMAT == FMT_J)                ? 2'h3 :
                 // If it's indexed (src or dst) or reg mode, keep incrementing
                 (FAIL_COND2 && CALC_done)        ? 2'h1 :
-                // indexed and we haven't finished calculating but
+                // Indexed and we haven't finished calculating but
                 // we already finished looking at the instruction
                 (FAIL_COND2) && FAIL_COND_done   ? 2'h0 :
                 // Indirect auto and we aren't done looking at the
                 // instruction
-                (FAIL_COND1) && ~FAIL_COND_done  ? 2'h0 : 2'h1;
+                (FAIL_COND1) && ~FAIL_COND_done  ? 2'h0 : 
+                (HOLD_COND2)                     ? 2'h0 : 2'h1;
 
    assign MSP = 0; // For now
    assign MSR = 0;
