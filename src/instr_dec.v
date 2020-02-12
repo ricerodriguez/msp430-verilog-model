@@ -110,19 +110,21 @@ module instr_dec
    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    // MUX A determines what goes into the A side of the function unit
    assign MA = ((!AdAs[1:0]) || CONST_GEN)      ? 2'h0 : // Register mode
-               (AdAs[1:0] == 2'b10)             ? 2'h1 : // Indirect reg mode
-               (AdAs == 3'b001) || (&AdAs[1:0]) ? 2'h2 : // Indexed src or Indirect autoinc
+               (AdAs[1])                        ? 2'h1 :
+               // (AdAs[1:0] == 2'b10)             ? 2'h1 : // Indirect reg mode
+               (AdAs == 3'b001)                 ? 2'h2 : // Indexed src or Indirect autoinc               // (AdAs == 3'b001) || (&AdAs[1:0]) ? 2'h2 : // Indexed src or Indirect autoinc
                (AdAs == 3'b101)                 ? 2'h3 : // Indexed src and dst
                2'h0;
 
-   assign MB = ~AdAs[2]   ? 1'b0 :
-               AdAs[2]    ? 1'b1 : 1'b0;
-
+   assign MB = (AdAs[2] && ~CONST_GEN) ? 1 : 0;
+   
    assign MC = (AdAs[2] || (AdAs[1:0] == 2'b01)) && ~CONST_GEN ? 1 : 0;
 
-   assign MD = (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
+   assign MD = (~AdAs[1]) ? 2'h0 :
+               (AdAs[1:0] == 2'b10 && ~CONST_GEN) ? 2'h1 :
+               // (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
-               (AdAs[1:0] == 2'b11) && !MD_done       ? 2'h2 : 2'h0;
+               (AdAs[1:0] == 2'b11) && !MD_done   ? 2'h2 : 2'h0;
 
    always @ (*)
      begin

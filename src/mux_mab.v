@@ -25,6 +25,6 @@ module mux_mab
    initial MAB_done <= 0;
 
    always @ (posedge clk)
-     MAB_done <= (RW && (MAB_sel == 3'h1) && (MD == 2'h1)) ? 1 : 0;
+     MAB_done <= (RW && (MAB_sel == 3'h1) && (^MD)) ? 1 : 0;
 
 endmodule

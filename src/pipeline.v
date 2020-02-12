@@ -21,7 +21,6 @@ module pipeline #(parameter SIZE=16)
    wire [3:0]           CVNZ_func;              // From u09_func_unit of func_unit.v
    wire [15:0]          Dout;                   // From u04_reg_file of reg_file.v
    wire [5:0]           FS;                     // From u03_instr_dec of instr_dec.v
-   wire                 FUNC_en;                // From u13_calc of calc.v
    wire [SIZE-1:0]      F_out;                  // From u09_func_unit of func_unit.v
    wire [1:0]           MA;                     // From u03_instr_dec of instr_dec.v
    wire                 MAB_done;               // From u01_mux_mab of mux_mab.v
@@ -177,7 +176,6 @@ module pipeline #(parameter SIZE=16)
       .B                                (B[SIZE-1:0]),
       .BW                               (BW),
       .FS                               (FS[5:0]),
-      .FUNC_en                          (FUNC_en),
       .MDB_out                          (MDB_out[15:0]));
 
    mux_din u10_mux_din
@@ -219,7 +217,6 @@ module pipeline #(parameter SIZE=16)
       // Outputs
       .CALC_done                        (CALC_done),
       .CALC_out                         (CALC_out[15:0]),
-      .FUNC_en                          (FUNC_en),
       // Inputs
       .AdAs                             (AdAs[2:0]),
       .Dout                             (Dout[15:0]),
