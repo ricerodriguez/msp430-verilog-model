@@ -70,7 +70,7 @@ module pipeline #(parameter SIZE=16)
       .CALC_done                        (CALC_done),
       .CALC_out                         (CALC_out[15:0]),
       .MAB_sel                          (MAB_sel[2:0]),
-      .MD                               (MD),
+      .MD                               (MD[1:0]),
       .MDB_out                          (MDB_out[15:0]),
       .RW                               (RW),
       .Sout                             (Sout[15:0]),

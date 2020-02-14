@@ -227,7 +227,7 @@ module instr_dec
           end // if (MAB_in == reg_PC_out)
         else
           begin
-             INSTR_REG <= INSTR_REG;
+             INSTR_REG <= (MD_done) ? MDB_out : INSTR_REG;
              if (AdAs[1])
                FAIL_COND_done <= 1;
           end  
