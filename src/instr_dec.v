@@ -5,7 +5,7 @@
  determines how many instructions to expect, then counts until that
  number of instructions has passed.
  TODO:
-   - FIX MAB_sel, for some reason it breaks when it uses AdAs==2'b10
+   - FIX MD, it keeps switching between 0 and 2 in indirect autoinc mode
 
  */
 `include "msp430_ops.vh"
@@ -124,7 +124,7 @@ module instr_dec
                (AdAs[1:0] == 2'b10 && ~CONST_GEN) ? 2'h1 :
                // (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
-               (AdAs[1:0] == 2'b11) && !MD_done   ? 2'h2 : 2'h0;
+               (AdAs[1:0] == 2'b11)   ? 2'h2 : 2'h0;
 
    always @ (*)
      begin
