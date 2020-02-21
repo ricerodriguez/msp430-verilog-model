@@ -59,6 +59,8 @@ module instr_dec
    reg [15:0]       MAB_IMM_last;
    reg              RW_last;
    reg              IND_REG_done;
+   reg              INCR_done;
+   
    
    // Initialize registers
    initial
@@ -75,6 +77,7 @@ module instr_dec
         MAB_sel <= 0;
         RW_last <= 0;
         IND_REG_done <= 0;
+        INCR_done <= 0;
      end // initial begin
 
 
@@ -86,8 +89,7 @@ module instr_dec
         reg_DA_last <= reg_DA;
         reg_SA_last <= reg_SA;
         IND_REG_done <= (RW && (AdAs[1]) && (reg_Din == MDB_out)) ? 1 : 0;
-        
-        // INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
+        INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
      end  
 
    // Wires
@@ -144,7 +146,7 @@ module instr_dec
    assign MD = (~AdAs[1]) ? 2'h0 :
                (AdAs[1:0] == 2'b10 && ~CONST_GEN) ? 2'h1 :
                // Indirect auto and we're holding the PC
-               (AdAs[1:0] == 2'b11)   ? 2'h2 : 2'h0;
+               (&AdAs[1:0] && ~INCR_done)   ? 2'h2 : 2'h0;
 
    always @ (*)
      begin
@@ -228,14 +230,12 @@ module instr_dec
    always @ (negedge clk)
      begin
         INSTR_LAST <= INSTR_REG;
-
         MAB_last <= MAB_in;
         MAB_IMM_last <= MAB_IMM;
 
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
-             // deassign INSTR_REG;
              // If one of the fail conditions is true, and we haven't moved on
              // from the instruction yet, latch it
              if ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done)
