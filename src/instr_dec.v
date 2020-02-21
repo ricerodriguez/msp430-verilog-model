@@ -18,6 +18,7 @@ module instr_dec
    input            MAB_done,
    input            MD_done,
    input [15:0]     Sout,
+   input [15:0]     reg_Din,
    output reg [2:0] MAB_sel,
    output [1:0]     MDB_sel,
    output [5:0]     FS,
@@ -51,10 +52,13 @@ module instr_dec
    reg [15:0]       reg_PC_last;
    
    reg [3:0]        reg_DA_last;
+   reg [3:0]        reg_SA_last;
    reg [1:0]        MD_last;
    reg              FAIL_COND_done; // Immediate mode instruction is already in IR
    reg [15:0]       MAB_last;
    reg [15:0]       MAB_IMM_last;
+   reg              RW_last;
+   reg              IND_REG_done;
    
    // Initialize registers
    initial
@@ -63,13 +67,25 @@ module instr_dec
         INSTR_REG <= 0;
         INSTR_LAST <= 0;
         reg_DA_last <= 0;
+        reg_SA_last <= 0;
         MD_last <= 0;
         FAIL_COND_done <= 0;
         MAB_last <= 0;
         MAB_IMM_last <= 0;
         MAB_sel <= 0;
+        RW_last <= 0;
+        IND_REG_done <= 0;
      end // initial begin
-   
+
+
+   always @ (posedge clk)
+     begin
+        RW_last <= RW;
+        reg_DA_last <= reg_DA;
+        reg_SA_last <= reg_SA;
+        IND_REG_done <= (RW && (AdAs[1]) && (reg_Din == MDB_out)) ? 1 : 0;
+        // INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
+     end  
 
    // Wires
    wire [1:0]  FORMAT;
@@ -83,7 +99,8 @@ module instr_dec
    // Two conditions for when to have DA = SA before DA = DA
    wire        HOLD_COND1; // Immediate mode
    wire        HOLD_COND2; // Indirect register autoincrement mode
-      
+   wire        CONST_GEN;
+   
    
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
@@ -130,7 +147,7 @@ module instr_dec
      begin
         if (!AdAs)
           MAB_sel <= MAB_PC;
-        else if (AdAs[1] && ~CONST_GEN && ~MAB_done)
+        else if (AdAs[1] && ~CONST_GEN && ~IND_REG_done)
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
@@ -204,13 +221,14 @@ module instr_dec
    always @ (negedge clk)
      begin
         INSTR_LAST <= INSTR_REG;
-        reg_DA_last <= reg_DA;
+
         MAB_last <= MAB_in;
         MAB_IMM_last <= MAB_IMM;
 
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
           begin
+             // deassign INSTR_REG;
              // If one of the fail conditions is true, and we haven't moved on
              // from the instruction yet, latch it
              if ((FAIL_COND1 || FAIL_COND2) && ~FAIL_COND_done)
@@ -227,7 +245,19 @@ module instr_dec
           end // if (MAB_in == reg_PC_out)
         else
           begin
-             INSTR_REG <= (MD_done) ? MDB_out : INSTR_REG;
+             // INSTR_REG <= (MD_done && INCR_done) ? MDB_out : INSTR_REG;
+             // assign INSTR_REG = (MD_done) ? MDB_out : INSTR_REG;
+             // If we are in indirect auto-increment mode, enter the state machine
+             if (&AdAs[1:0])
+               begin
+                  // First check if the increment is finished
+                  // INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
+                  if (RW_last && (reg_SA_last == reg_DA_last))
+                    // Wait one more
+                    INSTR_REG <= INSTR_REG;
+                  else
+                    INSTR_REG <= MDB_out;
+               end  
              if (AdAs[1])
                FAIL_COND_done <= 1;
           end  

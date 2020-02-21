@@ -70,7 +70,7 @@ module pipeline #(parameter SIZE=16)
       .CALC_done                        (CALC_done),
       .CALC_out                         (CALC_out[15:0]),
       .MAB_sel                          (MAB_sel[2:0]),
-      .MD                               (MD[1:0]),
+      .MD                               (MD),
       .MDB_out                          (MDB_out[15:0]),
       .RW                               (RW),
       .Sout                             (Sout[15:0]),
@@ -115,6 +115,7 @@ module pipeline #(parameter SIZE=16)
       .MD_done                          (MD_done),
       .Sout                             (Sout[15:0]),
       .clk                              (clk),
+      .reg_Din                          (reg_Din[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]));
 
    reg_file u04_reg_file
