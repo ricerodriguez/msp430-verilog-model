@@ -78,12 +78,15 @@ module instr_dec
      end // initial begin
 
 
+   
+   // Other half cycle latches, plus done bits for "state" machines
    always @ (posedge clk)
      begin
         RW_last <= RW;
         reg_DA_last <= reg_DA;
         reg_SA_last <= reg_SA;
         IND_REG_done <= (RW && (AdAs[1]) && (reg_Din == MDB_out)) ? 1 : 0;
+        
         // INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
      end  
 
@@ -100,8 +103,9 @@ module instr_dec
    wire        HOLD_COND1; // Immediate mode
    wire        HOLD_COND2; // Indirect register autoincrement mode
    wire        CONST_GEN;
-   
-   
+
+   wire [2:0]  MAB_sel_w;
+         
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
 
@@ -128,8 +132,8 @@ module instr_dec
    // MUX A determines what goes into the A side of the function unit
    assign MA = ((!AdAs[1:0]) || CONST_GEN)      ? 2'h0 : // Register mode
                (AdAs[1])                        ? 2'h1 :
-               // (AdAs[1:0] == 2'b10)             ? 2'h1 : // Indirect reg mode
-               (AdAs == 3'b001)                 ? 2'h2 : // Indexed src or Indirect autoinc               // (AdAs == 3'b001) || (&AdAs[1:0]) ? 2'h2 : // Indexed src or Indirect autoinc
+               (AdAs == 3'b001)                 ? 2'h2 : // Indexed src or Indirect autoinc               
+               // // (AdAs == 3'b001) || (&AdAs[1:0]) ? 2'h2 : // Indexed src or Indirect autoinc
                (AdAs == 3'b101)                 ? 2'h3 : // Indexed src and dst
                2'h0;
 
@@ -139,7 +143,6 @@ module instr_dec
 
    assign MD = (~AdAs[1]) ? 2'h0 :
                (AdAs[1:0] == 2'b10 && ~CONST_GEN) ? 2'h1 :
-               // (~AdAs[1]) || (AdAs[1:0] == 2'b10) ? 2'h0 :
                // Indirect auto and we're holding the PC
                (AdAs[1:0] == 2'b11)   ? 2'h2 : 2'h0;
 
@@ -153,8 +156,12 @@ module instr_dec
           MAB_sel <= MAB_CALC;
         else
           MAB_sel <= MAB_PC;
-     end  
+     end // always @ (*)
 
+   assign MAB_sel_w = (!AdAs) ? 3'h0 :
+                      (AdAs[1] && ~CONST_GEN && ~IND_REG_done) ? 3'h1 :
+                      (MC) ? 3'h2 : 3'h0;
+   
    assign MW = (AdAs[2] && CALC_done) ? 1    : 0;
    assign MDB_sel = (!AdAs[2])        ? 2'h0 :
                     (AdAs == 3'b100)  ? 2'h2 : 2'h1;
@@ -257,9 +264,15 @@ module instr_dec
                     INSTR_REG <= INSTR_REG;
                   else
                     INSTR_REG <= MDB_out;
-               end  
-             if (AdAs[1])
-               FAIL_COND_done <= 1;
+               end
+             // else INSTR_REG <= INSTR_REG;
+             else if (AdAs[1])
+               begin
+                  FAIL_COND_done <= 1;
+                  INSTR_REG <= INSTR_REG;
+               end
+             else
+               INSTR_REG <= INSTR_REG;
           end  
      end // always @ (negedge clk)
 

@@ -12,9 +12,7 @@ module mux_mab
    // 2: CALC_OUT -> MAB   3: SP -> MAB
    // 4: MDB_out -> MAB   
 
-   wire          what_is_this_doing = MD;
-   
-   assign MAB_in =
+   assign MAB_in =(MAB
                   (MAB_sel == 3'h0)               ? reg_PC_out :
                   (MAB_sel == 3'h1)               ? Sout       :
                   (MAB_sel == 3'h2) && CALC_done  ? CALC_out   :
