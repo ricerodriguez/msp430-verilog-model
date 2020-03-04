@@ -1,6 +1,7 @@
 module mem_space
   (input [15:0] MAB_in, MDB_in,
-   input clk, MW, BW,
+   input         clk, MW, BW,
+   output        ram_write_done,
    output [15:0] MDB_out);
 
    // Parameters for upper bound of memory spaces (end + 1)
@@ -50,6 +51,7 @@ module mem_space
       /*AUTOINST*/
       // Outputs
       .ram_out                          (ram_out[15:0]),
+      .ram_write_done                   (ram_write_done),
       // Inputs
       .BW                               (BW),
       .clk                              (clk),

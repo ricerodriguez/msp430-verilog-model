@@ -1,9 +1,11 @@
+// `include "msp430_ops.vh"
 module mux_sp
   (input [15:0]  reg_SP_out,
-   input [1:0]   MSP, // From control unit
+   input [1:0]   MSP, // From instruction decoder
    output [15:0] reg_SP_in);
-
+   
    wire [15:0] SP_force_even = {reg_SP_out[15:1],1'b0};
+
    wire [47:0] mux_ins_flat = {SP_force_even+2'd2,
                                SP_force_even-2'd2,
                                SP_force_even};

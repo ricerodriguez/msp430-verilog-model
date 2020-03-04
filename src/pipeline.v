@@ -35,10 +35,11 @@ module pipeline #(parameter SIZE=16)
    wire                 MD_done;                // From u10_mux_din of mux_din.v
    wire [2:0]           MPC;                    // From u03_instr_dec of instr_dec.v
    wire [1:0]           MSP;                    // From u03_instr_dec of instr_dec.v
-   wire                 MSR;                    // From u03_instr_dec of instr_dec.v
+   wire [1:0]           MSR;                    // From u03_instr_dec of instr_dec.v
    wire                 MW;                     // From u03_instr_dec of instr_dec.v
    wire                 RW;                     // From u03_instr_dec of instr_dec.v
    wire [15:0]          Sout;                   // From u04_reg_file of reg_file.v
+   wire                 ram_write_done;         // From u00_mem_space of mem_space.v
    wire [3:0]           reg_DA;                 // From u03_instr_dec of instr_dec.v
    wire [15:0]          reg_Din;                // From u10_mux_din of mux_din.v
    wire [15:0]          reg_PC_in;              // From u05_mux_pc of mux_pc.v
@@ -54,6 +55,7 @@ module pipeline #(parameter SIZE=16)
      (/*AUTOINST*/
       // Outputs
       .MDB_out                          (MDB_out[15:0]),
+      .ram_write_done                   (ram_write_done),
       // Inputs
       .BW                               (BW),
       .MAB_in                           (MAB_in[15:0]),
@@ -102,7 +104,7 @@ module pipeline #(parameter SIZE=16)
       .MDB_sel                          (MDB_sel[1:0]),
       .MPC                              (MPC[2:0]),
       .MSP                              (MSP[1:0]),
-      .MSR                              (MSR),
+      .MSR                              (MSR[1:0]),
       .MW                               (MW),
       .RW                               (RW),
       .reg_DA                           (reg_DA[3:0]),
@@ -115,6 +117,7 @@ module pipeline #(parameter SIZE=16)
       .MD_done                          (MD_done),
       .Sout                             (Sout[15:0]),
       .clk                              (clk),
+      .ram_write_done                   (ram_write_done),
       .reg_Din                          (reg_Din[15:0]),
       .reg_PC_out                       (reg_PC_out[15:0]));
 
@@ -155,7 +158,8 @@ module pipeline #(parameter SIZE=16)
       .reg_SR_in                        (reg_SR_in[15:0]),
       // Inputs
       .CVNZ_func                        (CVNZ_func[3:0]),
-      .MSR                              (MSR),
+      .MDB_out                          (MDB_out[15:0]),
+      .MSR                              (MSR[1:0]),
       .reg_SR_out                       (reg_SR_out[15:0]));
 
    mux_sp u07
@@ -177,7 +181,8 @@ module pipeline #(parameter SIZE=16)
       .B                                (B[SIZE-1:0]),
       .BW                               (BW),
       .FS                               (FS[5:0]),
-      .MDB_out                          (MDB_out[15:0]));
+      .MDB_out                          (MDB_out[15:0]),
+      .reg_SR_out                       (reg_SR_out[15:0]));
 
    mux_din u10_mux_din
      (/*AUTOINST*/

@@ -4,6 +4,7 @@ module ram
    input [15:0]  ram_Din,
    input         ram_RW,
    input         BW,
+   output reg    ram_write_done,
    output [15:0] ram_out);
 
    parameter  BOUND_U = 16'h0400,
@@ -25,11 +26,14 @@ module ram
      begin
         if (ram_RW)
           begin
+             ram_write_done<=1'b1;
              if (~BW)
                {mem_ram[ram_addr+1],mem_ram[ram_addr]} <= ram_Din;
              else
                mem_ram[ram_addr] <= ram_Din;
           end
+        else
+          ram_write_done<=1'b0;
      end  
    
        
