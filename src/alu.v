@@ -9,20 +9,24 @@ module alu #(parameter SIZE=16)
 
    wire [SIZE-1:0]   ARIT_OUT;
    wire [SIZE-1:0]   LOG_OUT;
+   wire              Cout_arit;
+   wire              Cout_log;
 
    // Assign status bits
+   assign CVNZ_alu[3] = !FS[4] ? Cout_arit : Cout_log;
    assign CVNZ_alu[1] = (~BW && ALU_OUT[SIZE-1])   ? 1'b1 :
                         ( BW && ALU_OUT[SIZE/2-1]) ? 1'b1 : 0;
    assign CVNZ_alu[0] = !ALU_OUT ? 1'b1 : 0;
-   
+
    
    arit_ckt #(SIZE) u1
      (.S(FS[1:0]),
-      .Cout(CVNZ_alu[3]),
+      // .Cout(CVNZ_alu[3]),
       .V(CVNZ_alu[2]),
       /*AUTOINST*/
       // Outputs
       .ARIT_OUT                         (ARIT_OUT[SIZE-1:0]),
+      .Cout_arit                        (Cout_arit),
       // Inputs
       .BW                               (BW),
       .Cin                              (Cin),
@@ -32,6 +36,7 @@ module alu #(parameter SIZE=16)
    log_ckt #(SIZE) u2
      (/*AUTOINST*/
       // Outputs
+      .Cout_log                         (Cout_log),
       .LOG_OUT                          (LOG_OUT[SIZE-1:0]),
       // Inputs
       .DST                              (DST[SIZE-1:0]),

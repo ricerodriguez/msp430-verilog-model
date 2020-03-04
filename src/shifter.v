@@ -12,10 +12,11 @@ module shifter #(parameter SIZE_BYTE=8, SIZE_WORD=16)
 
    wire [2*SIZE_WORD-1:0] padded_word_msb = {{SIZE_WORD{DST[SIZE_WORD-1]}},DST};
    wire [2*SIZE_WORD-1:0] padded_word_lsb = {{SIZE_WORD{DST[0]}},DST};
+   
    reg                    C_shift;
 
    // Assign status bits
-   assign CVNZ_shift[3] = C_shift;
+   assign CVNZ_shift[3] = (&FS) ? (~CVNZ_shift[0]) : C_shift;
    assign CVNZ_shift[2] = 0;
    assign CVNZ_shift[1] =  (BW && SHIFT_OUT[SIZE_BYTE-1]) ? 1'b1 :
                           (~BW && SHIFT_OUT[SIZE_WORD-1]) ? 1'b1 : 0;

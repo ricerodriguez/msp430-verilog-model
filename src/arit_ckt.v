@@ -4,7 +4,7 @@ module arit_ckt #(parameter SIZE=16)
    input [1:0]       S,
    input             Cin,
    output [SIZE-1:0] ARIT_OUT,
-   output            Cout, V);
+   output            Cout_arit, V);
 
    wire [SIZE-1:0]   DST_BAR;
    assign DST_BAR = ~DST;
@@ -14,7 +14,7 @@ module arit_ckt #(parameter SIZE=16)
    wire [SIZE-1:0]   ARIT_OUT_TMP;
    
    // Ripple carry bits
-   wire [SIZE-1:0]   Cout_full;
+   wire [SIZE-1:0]   Cout_arit_full;
 
    // First level of logic
    wire [SIZE-1:0]   S0;
@@ -28,10 +28,10 @@ module arit_ckt #(parameter SIZE=16)
    assign Y = (DST & S0) | (DST_BAR & S1);
 
    // Do all the ripple carries in one shot
-   assign {Cout_full,ARIT_OUT} = SRC+Y+Cin;
+   assign {Cout_arit_full,ARIT_OUT} = SRC+Y+Cin;
 
    // LSB of carry out bus is the final carry out
-   assign Cout = Cout_full[0];
+   assign Cout_arit = Cout_arit_full[0];
 
    // If we're ADDING, and both inputs have the same sign and output has opposite sign, OVERFLOW.
    // If we're SUBTRACTING, and the inputs sign bit do NOT match, and output sign matches B sign, OVERFLOW.

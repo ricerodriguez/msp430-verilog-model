@@ -4,8 +4,6 @@
  Decodes the instructions coming off the MDB from ROM. First
  determines how many instructions to expect, then counts until that
  number of instructions has passed.
- TODO:
-   - FIX MD, it keeps switching between 0 and 2 in indirect autoinc mode
 
  */
 `include "msp430_ops.vh"
@@ -187,7 +185,6 @@ module instr_dec
                 (HOLD_COND2)                     ? 2'h0 : 2'h1;
 
    assign MSP = 0; // For now
-   assign MSR = 0;
 
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : BW;
 
@@ -196,26 +193,26 @@ module instr_dec
                    (FORMAT == FMT_J)                                  ? 1'b0 : 1'b1;
    
                    
-   assign FS = (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_MOV)  ? `FS_MOV  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_ADD)  ? `FS_ADD  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_ADDC) ? `FS_ADDC :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_SUBC) ? `FS_SUBC :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_SUB)  ? `FS_SUB  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_CMP)  ? `FS_CMP  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_DADD) ? `FS_DADD :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIT)  ? `FS_BIT  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIC)  ? `FS_BIC  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIS)  ? `FS_BIS  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_XOR)  ? `FS_XOR  :
-               (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_AND)  ? `FS_AND  :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RRC)  ? `FS_RRC  :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SWPB) ? `FS_SWPB :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RRA)  ? `FS_RRA  :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SXT)  ? `FS_SXT  :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_PUSH) ? `FS_PUSH :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_CALL) ? `FS_CALL :
-               (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RETI) ? `FS_RETI :
-               (FORMAT == FMT_J)                     ? {4'b0,INSTR_REG[12:10]} : 'bx;
+   assign {MSR,FS} = (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_MOV)  ? {1'b0, `FS_MOV}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_ADD)  ? {1'b1, `FS_ADD}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_ADDC) ? {1'b1, `FS_ADDC} :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_SUBC) ? {1'b1, `FS_SUBC} :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_SUB)  ? {1'b1, `FS_SUB}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_CMP)  ? {1'b1, `FS_CMP}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_DADD) ? {1'b1, `FS_DADD} :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIT)  ? {1'b1, `FS_BIT}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIC)  ? {1'b0, `FS_BIC}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_BIS)  ? {1'b0, `FS_BIS}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_XOR)  ? {1'b1, `FS_XOR}  :
+                     (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_AND)  ? {1'b1, `FS_AND}  :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RRC)  ? {1'b1, `FS_RRC}  :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SWPB) ? {1'b0, `FS_SWPB} :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RRA)  ? {1'b1, `FS_RRA}  :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SXT)  ? {1'b1, `FS_SXT}  :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_PUSH) ? {1'b0, `FS_PUSH} :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_CALL) ? {1'b0, `FS_CALL} :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RETI) ? {1'b0, `FS_RETI} :
+                     (FORMAT == FMT_J)                     ? {5'b0,INSTR_REG[12:10]} : 'bx;
    
                
 
