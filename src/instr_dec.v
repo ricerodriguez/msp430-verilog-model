@@ -168,7 +168,7 @@ module instr_dec
                       (AdAs[1] && ~CONST_GEN && ~IND_REG_done) ? 3'h1 :
                       (MC) ? 3'h2 : 3'h0;
    
-   assign MW = (FS == `FS_PUSH)          ? 1    :
+   assign MW = ((FS == `FS_PUSH) && ~ram_write_done)       ? 1    :
                (AdAs[2] && CALC_done) ? 1    : 0;
    assign MDB_sel = ((!AdAs[2]) && (FS != `FS_PUSH))      ? 2'h0 :
                     (AdAs == 3'b100) || (FS == `FS_PUSH) ? 2'h2 : 2'h1;
@@ -196,9 +196,10 @@ module instr_dec
 
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : BW;
 
-   assign pre_RW = (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_CMP) ? 1'b0 :
-                   (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_BIT) ? 1'b0 :
-                   (FORMAT == FMT_J)                                  ? 1'b0 : 1'b1;
+   assign pre_RW = (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_CMP)  ? 1'b0 :
+                   (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_BIT)  ? 1'b0 :
+                   (FORMAT == FMT_II) && (INSTR_REG[15:7] == `OP_PUSH) ? 1'b0 :                   
+                   (FORMAT == FMT_J)                                   ? 1'b0 : 1'b1;
    
                    
    assign {MSR,FS} = (FORMAT == FMT_I)  && (INSTR_REG[15:12] == `OP_MOV)  ? {2'h0, `FS_MOV}  :

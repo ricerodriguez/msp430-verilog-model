@@ -4,10 +4,10 @@ StartProgram
         mov R3, R3              ; Nop
         mov #0x0400, SP         ; Initialize stack pointer
         mov #0x0300, R15        ; Initialize R15 with 0x0300
+        mov R15, 2(R15)         ; 
         push R15                ; Push R15 before we change it
         mov #0x0200, R14        ; Initialize R14 with 0x0200
         add R14, R15            ; Add the numbers
-        pop R15                 ; Pop off the stack
         addc R12, R13           ;
         sub R10, R11
         subc R8, R9
