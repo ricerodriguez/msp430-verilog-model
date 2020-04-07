@@ -13,11 +13,11 @@ module ram
 
    // 512 bytes of RAM
    reg [7:0]     mem_ram [SIZE-1:0];
-   initial 
-     begin
-        $readmemh("test_ram.mem",mem_ram,0);
-        // $readmemh("mems/clear.mem",mem_ram,59);
-     end  
+   // initial 
+   //   begin
+   //      $readmemh("test_ram.mem",mem_ram,0);
+   //      // $readmemh("mems/clear.mem",mem_ram,59);
+   //   end  
 
    // Double fetch for 16-bits
    assign ram_out = {mem_ram[ram_addr+1],mem_ram[ram_addr]};

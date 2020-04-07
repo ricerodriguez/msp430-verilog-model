@@ -152,13 +152,13 @@ module instr_dec
 
    always @ (*)
      begin
-        if ((!AdAs) && (MSR < 2'h2))
+        if ((!AdAs) && (FS != `FS_PUSH))
           MAB_sel <= MAB_PC;
         else if (AdAs[1] && ~CONST_GEN && ~IND_REG_done)
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
-        else if ((MSR == 2'h2) && ~ram_write_done_sync)
+        else if ((FS == `FS_PUSH) && ~ram_write_done_sync)
           MAB_sel <= MAB_SP;
         else
           MAB_sel <= MAB_PC;
@@ -168,10 +168,10 @@ module instr_dec
                       (AdAs[1] && ~CONST_GEN && ~IND_REG_done) ? 3'h1 :
                       (MC) ? 3'h2 : 3'h0;
    
-   assign MW = (MSR == 2'h2)          ? 1    :
+   assign MW = (FS == `FS_PUSH)          ? 1    :
                (AdAs[2] && CALC_done) ? 1    : 0;
-   assign MDB_sel = ((!AdAs[2]) && (MSR < 2'h2))      ? 2'h0 :
-                    (AdAs == 3'b100) || (MSR == 2'h2) ? 2'h2 : 2'h1;
+   assign MDB_sel = ((!AdAs[2]) && (FS != `FS_PUSH))      ? 2'h0 :
+                    (AdAs == 3'b100) || (FS == `FS_PUSH) ? 2'h2 : 2'h1;
    
    // How do we get it to pause for a cycle to do the increment on
    // indirect register/autoincrement modes? The instruction length
@@ -188,7 +188,8 @@ module instr_dec
                 (FAIL_COND2) && FAIL_COND_done   ? 2'h0 :
                 // Indirect auto and we aren't done looking at the
                 // instruction
-                (FAIL_COND1) && ~FAIL_COND_done  ? 2'h0 : 
+                (FAIL_COND1) && ~FAIL_COND_done  ? 2'h0 :
+                (ram_write_done_sync)            ? 2'h0 :
                 (HOLD_COND2)                     ? 2'h0 : 2'h1;
 
    assign MSP = ((FS == `FS_PUSH) && ~ram_write_done) ? 2'h1 : 2'h0; // For now
@@ -216,7 +217,7 @@ module instr_dec
                      (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SWPB) ? {2'h0, `FS_SWPB} :
                      (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RRA)  ? {2'h1, `FS_RRA}  :
                      (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_SXT)  ? {2'h1, `FS_SXT}  :
-                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_PUSH) ? {2'h2, `FS_PUSH} :
+                     (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_PUSH) ? {2'h0, `FS_PUSH} :
                      (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_CALL) ? {2'h0, `FS_CALL} :
                      (FORMAT == FMT_II) && (INSTR_REG[15:7]  == `OP_RETI) ? {2'h2, `FS_RETI} :
                      (FORMAT == FMT_J)                     ? {5'b0,INSTR_REG[12:10]} : 'bx;

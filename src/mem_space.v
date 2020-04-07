@@ -14,7 +14,7 @@ module mem_space
    // the way to the top and IVT occupies that space in ROM.
    
    wire [15:0]   rom_addr, ram_addr;
-   wire          ram_RW;
+   // wire          ram_RW;
    wire [2:0]    range;
 
    /*AUTOWIRE*/
@@ -36,7 +36,7 @@ module mem_space
    // Encoder uses address bounds to determine correct offset
    assign rom_addr = (range == 5) ? (MAB_in - ub_UNUSED) : 'bx;
    assign ram_addr = (range == 3) ? (MAB_in - ub_peri16) : 'bx;
-   assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
+   // assign ram_RW   = (range == 3) ? (MW)                 : 'b0;
    
    rom u1
      (/*AUTOINST*/
