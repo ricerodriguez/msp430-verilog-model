@@ -59,6 +59,8 @@ module instr_dec
    reg              RW_last;
    reg              IND_REG_done;
    reg              INCR_done;
+   reg              ram_write_done_sync;
+   
    
    
    // Initialize registers
@@ -77,6 +79,7 @@ module instr_dec
         RW_last <= 0;
         IND_REG_done <= 0;
         INCR_done <= 0;
+        ram_write_done_sync <= 0;
      end // initial begin
 
 
@@ -155,7 +158,7 @@ module instr_dec
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
-        else if (MSR == 2'h2)
+        else if ((MSR == 2'h2) && ~ram_write_done_sync)
           MAB_sel <= MAB_SP;
         else
           MAB_sel <= MAB_PC;
@@ -234,6 +237,7 @@ module instr_dec
         INSTR_LAST <= INSTR_REG;
         MAB_last <= MAB_in;
         MAB_IMM_last <= MAB_IMM;
+        ram_write_done_sync <= ram_write_done;
 
         // If the PC is the MAB, then it's *probably* an instruction
         if (MAB_in == reg_PC_out)
