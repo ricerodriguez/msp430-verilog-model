@@ -12,6 +12,7 @@ module instr_dec
    input [15:0]     MDB_out,
    input [15:0]     MAB_in,
    input [15:0]     reg_PC_out,
+   input [15:0]     reg_SP_out,
    input            CALC_done,
    input            MAB_done,
    input            MD_done,
@@ -42,8 +43,6 @@ module instr_dec
      FMT_I    = 1, FMT_II   = 2, FMT_J    = 3,
      MAB_PC   = 0, MAB_Sout = 1, MAB_CALC = 2,
      MAB_SP   = 3, MAB_MDB  = 4;
-   
-
 
    // Registers
    reg [15:0]       INSTR_REG;
@@ -60,8 +59,7 @@ module instr_dec
    reg              IND_REG_done;
    reg              INCR_done;
    reg              ram_write_done_sync;
-   
-   
+   reg              stack_updated;
    
    // Initialize registers
    initial
@@ -80,9 +78,8 @@ module instr_dec
         IND_REG_done <= 0;
         INCR_done <= 0;
         ram_write_done_sync <= 0;
+        stack_updated <= 0;
      end // initial begin
-
-
    
    // Other half cycle latches, plus done bits for "state" machines
    always @ (posedge clk)
@@ -92,6 +89,7 @@ module instr_dec
         reg_SA_last <= reg_SA;
         IND_REG_done <= (RW && (AdAs[1]) && (reg_Din == MDB_out)) ? 1 : 0;
         INCR_done <= (RW && (&AdAs[1:0]) && (reg_SA == reg_DA)) ? 1 : 0;
+        stack_updated <= (MW && (MAB_in == reg_SP_out)) ? 1 : 0;
      end  
 
    // Wires
@@ -108,7 +106,18 @@ module instr_dec
    wire        HOLD_COND2; // Indirect register autoincrement mode
    wire        CONST_GEN;
 
+   // For a memory write to happen, Ad must be 1 or instruction is PUSH or CALL.
+   wire        MW_COND1;   // Condition 1 for Memory Write bit to be enabled:
+                           // Ad bit is 1... AND MAB is lined up. 
+
+   wire        MW_COND2;   // Condition 2 for Memory Write bit to be enabled:
+                           // Instruction is either PUSH or CALL... AND MAB is lined
+                           // up. 
+   
+   
+   
    wire [2:0]  MAB_sel_w;
+   
          
    assign FAIL_COND1 = (AdAs[1] && (Sout == reg_PC_out)) ? 1 : 0;
    assign FAIL_COND2 = (AdAs[2] || (AdAs[1:0] == 2'b01));
@@ -158,7 +167,8 @@ module instr_dec
           MAB_sel <= MAB_Sout;
         else if (MC)
           MAB_sel <= MAB_CALC;
-        else if ((FS == `FS_PUSH) && ~ram_write_done_sync)
+        // else if ((FS == `FS_PUSH) && ~ram_write_done_sync)
+        else if (((FS == `FS_PUSH) || (FS == `FS_CALL)))
           MAB_sel <= MAB_SP;
         else
           MAB_sel <= MAB_PC;
@@ -167,9 +177,18 @@ module instr_dec
    assign MAB_sel_w = (!AdAs) ? 3'h0 :
                       (AdAs[1] && ~CONST_GEN && ~IND_REG_done) ? 3'h1 :
                       (MC) ? 3'h2 : 3'h0;
+
+   // Condition 1: Ad is 1 and calculator has finished calculating, so MAB should be lined up now.
+   assign MW_COND1 = (AdAs[2] && CALC_done) ? 1 : 0;
+   // Condition 2: Instruction is PUSH or CALL. Exit condition: MAB = SP and MW on posedge.
+   assign MW_COND2 = ((FS == `FS_PUSH) || (FS == `FS_CALL)) ? 1 : 0;
+
+   // Memory Write bit enabled when there is a write to RAM.
+   assign MW = (MW_COND1 || MW_COND2) ? 1 : 0;
+   // assign MW = ((FS == `FS_PUSH) && ~ram_write_done)       ? 1    :
+               // (AdAs[2] && CALC_done) ? 1    : 0;
    
-   assign MW = ((FS == `FS_PUSH) && ~ram_write_done)       ? 1    :
-               (AdAs[2] && CALC_done) ? 1    : 0;
+
    assign MDB_sel = ((!AdAs[2]) && (FS != `FS_PUSH))      ? 2'h0 :
                     (AdAs == 3'b100) || (FS == `FS_PUSH) ? 2'h2 : 2'h1;
    
@@ -192,10 +211,11 @@ module instr_dec
                 (ram_write_done_sync)            ? 2'h0 :
                 (HOLD_COND2)                     ? 2'h0 : 2'h1;
 
-   assign MSP = ((FS == `FS_PUSH) && ~ram_write_done) ? 2'h1 : 2'h0; // For now
+   // assign MSP = ((FS == `FS_PUSH) && ~ram_write_done) ? 2'h1 : 2'h0; // For now
 
+   assign MSP = (((FS == `FS_PUSH) || (FS == `FS_CALL)) && ~stack_updated) ? 1 : 0;
+   
    assign BW = (FORMAT <= FMT_II) ? INSTR_REG[6] : BW;
-
    assign pre_RW = (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_CMP)  ? 1'b0 :
                    (FORMAT == FMT_I) && (INSTR_REG[15:12] == `OP_BIT)  ? 1'b0 :
                    (FORMAT == FMT_II) && (INSTR_REG[15:7] == `OP_PUSH) ? 1'b0 :                   

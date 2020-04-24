@@ -119,7 +119,8 @@ module pipeline #(parameter SIZE=16)
       .clk                              (clk),
       .ram_write_done                   (ram_write_done),
       .reg_Din                          (reg_Din[15:0]),
-      .reg_PC_out                       (reg_PC_out[15:0]));
+      .reg_PC_out                       (reg_PC_out[15:0]),
+      .reg_SP_out                       (reg_SP_out[15:0]));
 
    reg_file u04_reg_file
      (.As(AdAs[1:0]),
